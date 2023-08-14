@@ -44,10 +44,19 @@ namespace nl::rakis::raspberry::interfaces::zero2w
         uint misoPin_;
 
     protected:
+        unsigned long bytes2buf(uint8_t byte0, uint8_t byte1, uint8_t byte2, uint8_t byte3) const
+        {
+            union {
+                uint8_t bytes[4];
+                unsigned long buf;
+            } u{.bytes = {byte0, byte1, byte2, byte3}};
+            return u.buf;
+        }
+
         virtual void writeBlocking(std::array<uint8_t, 2> const &value)
         {
             struct spi_ioc_transfer tr{
-                .tx_buf = 0x00000040u | (value[0] << 8) | (value[1] << 16),
+                .tx_buf = bytes2buf(0x40, value[0], value[1], 0),
                 .rx_buf = 0,
                 .len = 3,
                 .speed_hz = 5000000,
