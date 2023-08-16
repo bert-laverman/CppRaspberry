@@ -85,9 +85,6 @@ int main(int argc, char **argv)
     {
         max7219.setNumber(0, 12345678);
     }
-    max7219.setNumber(0, 10);
-    //max7219.setNumber(0, 12345678);
-    //max7219.setNumber(1, 87654321);
 
     return 0;
 }
