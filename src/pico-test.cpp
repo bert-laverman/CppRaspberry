@@ -61,7 +61,7 @@ int main()
     Zero2W berry;
     setup(berry);
     berry.spi().deselect();
-    berry.spi().numModules(2);
+    berry.spi().numModules(1);
     berry.spi().open();
 
     MAX7219 max7219(berry.spi());
@@ -72,6 +72,7 @@ int main()
     max7219.startup();
     max7219.setBrightness(8);
 
+    max7219.clear(0);
     max7219.setNumber(0, 10);
     //max7219.setNumber(0, 12345678);
     //max7219.setNumber(1, 87654321);

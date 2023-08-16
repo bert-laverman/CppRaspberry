@@ -77,6 +77,11 @@ public:
         spi_.writeAll(buf);
     }
 
+    inline void clear(uint module) {
+        buffer_[module].fill(0x0f);
+        writeBuffers();
+    }
+
     inline void setNumber(uint module, uint value) {
         buffer_[module].fill(0);
 
