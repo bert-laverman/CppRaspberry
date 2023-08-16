@@ -47,7 +47,7 @@ pico_enable_stdio_usb(pico-test 0)
 
 add_compile_definitions(TARGET_PICO)
 
-else
+else (TARGET_PICO)
 
 add_compile_definitions(TARGET_ZERO2W)
 

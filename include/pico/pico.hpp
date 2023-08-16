@@ -5,7 +5,7 @@
 
 #include <pico/stdlib.h>
 
-#include <pico/interfaces/pico_spi.hpp>
+#include "interfaces/pico_spi.hpp"
 
 namespace nl::rakis::raspberry {
 

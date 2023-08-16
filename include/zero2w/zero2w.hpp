@@ -6,7 +6,7 @@
 #include <cstdint>
 
 #include <raspberry_pi.hpp>
-#include <interfaces/zero2w_spi.hpp>
+#include "interfaces/zero2w_spi.hpp"
 
 
 namespace nl::rakis::raspberry {
