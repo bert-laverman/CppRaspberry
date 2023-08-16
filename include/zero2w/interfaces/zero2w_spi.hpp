@@ -118,7 +118,7 @@ namespace nl::rakis::raspberry::interfaces::zero2w
             ::close(fd_);
         }
 
-        virtual void open()
+        void open()
         {
             fd_ = ::open(interface_.c_str(), O_RDWR);
         }

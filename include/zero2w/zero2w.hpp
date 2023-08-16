@@ -4,19 +4,21 @@
 // Purpose: General Pico management code
 
 #include <cstdint>
-#include "interfaces/zero2w_spi.hpp"
+
+#include <raspberry_pi.hpp>
+#include <interfaces/zero2w_spi.hpp>
 
 
 namespace nl::rakis::raspberry {
 
-class Zero2W {
+class Zero2W : public virtual RaspberryPi {
     interfaces::zero2w::Zero2WSPI spi0_;
 
 public:
     Zero2W() : spi0_(8, 11, 10, 9) {
     };
 
-    inline interfaces::SPI& spi([[maybe_unused]] uint num = 0) {
+    virtual interfaces::SPI& spi([[maybe_unused]] unsigned num = 0) {
         return spi0_;
     };
 };

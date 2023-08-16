@@ -13,28 +13,23 @@ namespace nl::rakis::raspberry::interfaces
 
     class SPI
     {
-
-        uint csPin_;
-        uint sckPin_;
-        uint mosiPin_;
-        uint misoPin_;
-
-        uint num_modules_{1}; // Number of devices daisy-chained
+        unsigned num_modules_{1}; // Number of devices daisy-chained
 
     protected:
-        SPI(uint csPin, uint sckPin, uint mosiPin, uint misoPin)
-            : csPin_(csPin), sckPin_(sckPin), mosiPin_(mosiPin), misoPin_(misoPin)
-        {
-        }
+        SPI() = default;
+        SPI(SPI const &) = default;
+        SPI(SPI &&) = default;
+        SPI &operator=(SPI const &) = default;
+        SPI &operator=(SPI &&) = default;
 
     public:
         virtual ~SPI() = default;
 
-        inline void numModules(uint num_modules)
+        inline void numModules(unsigned num_modules)
         {
             num_modules_ = num_modules;
         }
-        inline uint numModules() const
+        inline unsigned numModules() const
         {
             return num_modules_;
         }
@@ -43,11 +38,9 @@ namespace nl::rakis::raspberry::interfaces
 
         virtual void deselect() =0;
 
-        virtual void open() =0;
-
         virtual void writeAll(std::array<uint8_t, 2> const &value) =0;
 
-        virtual void writeAll(std::function<std::array<uint8_t, 2>(uint)> const &value) =0;
+        virtual void writeAll(std::function<std::array<uint8_t, 2>(unsigned)> const &value) =0;
     };
 
 } // namespace nl::rakis::raspberry::interfaces

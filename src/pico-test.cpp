@@ -1,28 +1,12 @@
 // Copyright 2023 by Bert Laverman, All rights reserved.
 
-#if defined(TARGET_PICO)
-
-#include "PICO.hpp"
-#include "pico/stdlib.h"
-#include "hardware/spi.h"
-#include "hardware/i2c.h"
-#include "hardware/timer.h"
-#include "hardware/clocks.h"
-
-#include "pico/pico.hpp"
-using nl::rakis::raspberry::PICO;
-
-#else
-
-#include "zero2w/zero2w.hpp"
-using nl::rakis::raspberry::Zero2W;
-
-#endif
-
-#include "devices/max7219.hpp"
+#include <raspberry_pi.hpp>
+#include <devices/max7219.hpp>
 
 #include <stdio.h>
 
+using nl::rakis::raspberry::RaspberryPi;
+using nl::rakis::raspberry::interfaces::SPI;
 using nl::rakis::raspberry::devices::MAX7219;
 
 // I2C defines
@@ -37,10 +21,6 @@ using nl::rakis::raspberry::devices::MAX7219;
 //     return 0;
 // }
 
-template <typename T>
-void setup(T& berry) {
-    berry.spi().deselect();
-    
     // I2C Initialisation. Using it at 400Khz.
     //i2c_init(I2C_PORT, 400*1000);
         /*
@@ -53,18 +33,13 @@ void setup(T& berry) {
 
     // Timer example code - This example fires off the callback after 2000ms
     //add_alarm_in_ms(2000, alarm_callback, NULL, false);
-}
 
 int main(int argc, char **argv)
 {
-    //PICO berry;
-    Zero2W berry;
-    setup(berry);
-    berry.spi().deselect();
-    berry.spi().numModules((argc > 2) ? 2 : 1);
-    berry.spi().open();
+    RaspberryPi& berry(*RaspberryPi::instance());
+    berry.spi(0).numModules((argc > 2) ? 2 : 1);
 
-    MAX7219 max7219(berry.spi());
+    MAX7219 max7219(berry.spi(0));
     max7219.shutdown();
     max7219.displayTest(0);
     max7219.setScanLimit(7);

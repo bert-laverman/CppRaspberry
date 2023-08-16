@@ -6,7 +6,7 @@
 #include <array>
 #include <vector>
 
-#include "../interfaces/spi.hpp"
+#include <interfaces/spi.hpp>
 
 
 namespace nl::rakis::raspberry::devices {
@@ -34,8 +34,8 @@ private:
     std::vector<std::array<uint8_t, 8>> buffer_;
 
     void writeBuffers() {
-        for (uint pos = 0; pos < 8; ++pos) {
-            spi_.writeAll([pos,this](uint module){ return std::array<uint8_t, 2>{uint8_t(CMD_DIGIT0 + pos), buffer_[module][pos]}; });
+        for (unsigned pos = 0; pos < 8; ++pos) {
+            spi_.writeAll([pos,this](unsigned module){ return std::array<uint8_t, 2>{uint8_t(CMD_DIGIT0 + pos), buffer_[module][pos]}; });
         }
     }
 
@@ -77,15 +77,15 @@ public:
         spi_.writeAll(buf);
     }
 
-    inline void clear(uint module) {
+    inline void clear(unsigned module) {
         buffer_[module].fill(0x0f);
         writeBuffers();
     }
 
-    inline void setNumber(uint module, uint value) {
+    inline void setNumber(unsigned module, unsigned value) {
         buffer_[module].fill(0);
 
-        for (uint pos = 0; (value > 0) && (pos < 8); ++pos, value /= 10) {
+        for (unsigned pos = 0; (value > 0) && (pos < 8); ++pos, value /= 10) {
             buffer_[module][pos] = (value % 10);
         }
         writeBuffers();

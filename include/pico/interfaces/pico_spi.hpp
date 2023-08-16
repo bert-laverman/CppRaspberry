@@ -8,63 +8,41 @@
 #include <array>
 #include <functional>
 
-#if defined(TARGET_PICO)
-
 #include "hardware/spi.h"
 
-#else
-
-#include <string>
-
-#endif
+#include <interfaces/spi.hpp>
 
 namespace nl::rakis::raspberry::interfaces
 {
 
-#if !defined(TARGET_PICO)
-
-    using spi_inst_t = const char;
-
-    constexpr static spi_inst_t *spi0{"/dev/spidev0.0"};
-
-#endif
-
-    enum class DefaultPin : uint
+    enum class DefaultPin : unsigned
     {
-#if defined(TARGET_PICO)
         SPI0_MISO = 16,
         SPI0_CS = 17,
         SPI0_SCK = 18,
         SPI0_MOSI = 19
-#else
-        SPI0_MISO = 9,
-        SPI0_CS = 8,
-        SPI0_SCK = 11,
-        SPI0_MOSI = 10
-#endif        
     };
 
-    inline consteval uint operator+(DefaultPin pin)
+    inline consteval unsigned operator+(DefaultPin pin)
     {
-        return uint(pin);
+        return unsigned(pin);
     };
 
-    class SPI
+    class PicoSPI : public virtual SPI
     {
         spi_inst_t *interface_;
 
-        uint csPin_;
-        uint sckPin_;
-        uint mosiPin_;
-        uint misoPin_;
+        unsigned csPin_;
+        unsigned sckPin_;
+        unsigned mosiPin_;
+        unsigned misoPin_;
 
-        uint num_modules_{1}; // Number of devices daisy-chained
+        unsigned num_modules_{1}; // Number of devices daisy-chained
 
     public:
-        SPI(spi_inst_t *interface, uint csPin, uint sckPin, uint mosiPin, uint misoPin)
-            : interface_(interface), csPin_(csPin), sckPin_(sckPin), mosiPin_(mosiPin), misoPin_(misoPin)
+        PicoSPI(spi_inst_t *interface, unsigned csPin, unsigned sckPin, unsigned mosiPin, unsigned misoPin)
+            : SPI(), interface_(interface), csPin_(csPin), sckPin_(sckPin), mosiPin_(mosiPin), misoPin_(misoPin)
         {
-#if defined(TARGET_PICO)
             spi_init(interface_, 10*1000*1000);
 
             gpio_init(csPin_);
@@ -83,91 +61,47 @@ namespace nl::rakis::raspberry::interfaces
             gpio_pull_up(sckPin_);
             gpio_pull_up(mosiPin_);
             gpio_pull_up(misoPin_);
-#else
-#endif
         }
 
-        SPI(uint csPin, uint sckPin, uint mosiPin, uint misoPin) : SPI(spi0, csPin, sckPin, mosiPin, misoPin)
+        PicoSPI(unsigned csPin, unsigned sckPin, unsigned mosiPin, unsigned misoPin) : PicoSPI(spi0, csPin, sckPin, mosiPin, misoPin)
         {
         }
 
-        SPI() : SPI(+DefaultPin::SPI0_CS, +DefaultPin::SPI0_SCK, +DefaultPin::SPI0_MOSI, +DefaultPin::SPI0_MISO)
+        PicoSPI() : PicoSPI(+DefaultPin::SPI0_CS, +DefaultPin::SPI0_SCK, +DefaultPin::SPI0_MOSI, +DefaultPin::SPI0_MISO)
         {
         }
 
-        inline void numModules(uint num_modules)
-        {
-            num_modules_ = num_modules;
-        }
-        inline uint numModules() const
-        {
-            return num_modules_;
-        }
-
-        inline void select()
+    public:
+        virtual void select()
         {
             asm volatile("nop \n nop \n nop");
             gpio_put(csPin_, 0);
             asm volatile("nop \n nop \n nop");
         }
 
-        inline void deselect()
+        virtual void deselect()
         {
             asm volatile("nop \n nop \n nop");
             gpio_put(csPin_, 1);
             asm volatile("nop \n nop \n nop");
         }
 
-        inline void write(std::array<uint8_t, 2> const &value)
+        virtual void writeAll(std::array<uint8_t, 2> const &value)
         {
             select();
-            spi_write_blocking(interface_, value.data(), 2);
-            deselect();
-        }
-
-        inline void writeAll(std::array<uint8_t, 2> const &value)
-        {
-            select();
-            for (uint module = 0; module < num_modules_; ++module)
+            for (unsigned module = 0; module < num_modules_; ++module)
             {
                 spi_write_blocking(interface_, value.data(), 2);
             }
             deselect();
         }
 
-        inline void writeAll(std::function<std::array<uint8_t, 2>(uint)> const &value)
+        virtual void writeAll(std::function<std::array<uint8_t, 2>(unsigned)> const &value)
         {
             select();
-            for (uint module = 0; module < num_modules_; ++module)
+            for (unsigned module = 0; module < num_modules_; ++module)
             {
                 spi_write_blocking(interface_, value(module).data(), 2);
-            }
-            deselect();
-        }
-
-        virtual void write(std::array<uint8_t, 2> const &value)
-        {
-            select();
-            writeBlocking(value);
-            deselect();
-        }
-
-        virtual void writeAll(std::array<uint8_t, 2> const &value)
-        {
-            select();
-            for (uint module = 0; module < num_modules_; ++module)
-            {
-                writeBlocking(value);
-            }
-            deselect();
-        }
-
-        virtual void writeAll(std::function<std::array<uint8_t, 2>(uint)> const &value)
-        {
-            select();
-            for (uint module = 0; module < num_modules_; ++module)
-            {
-                writeBlocking(value(module));
             }
             deselect();
         }
