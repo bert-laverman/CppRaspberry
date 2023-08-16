@@ -8,7 +8,6 @@
 #include <string>
 #include <cstring>
 #include <iostream>
-#include <iomanip>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -69,9 +68,10 @@ namespace nl::rakis::raspberry::interfaces::zero2w
             tx_buf[2] = value[1];
 
             std::cerr << "Writing "
-                      << std::hex << std::setw(2) << std::setfill('0') << tx_buf[0] << ", "
-                      << std::hex << std::setw(2) << std::setfill('0') << tx_buf[1] << ", "
-                      << std::hex << std::setw(2) << std::setfill('0') << tx_buf[2] << std::endl;
+                      << char('0' + (tx_buf[0] >> 4)) << char('0' + (tx_buf[0] & 0x0f)) << ", "
+                      << char('0' + (tx_buf[1] >> 4)) << char('0' + (tx_buf[1] & 0x0f)) << ", "
+                      << char('0' + (tx_buf[2] >> 4)) << char('0' + (tx_buf[2] & 0x0f)) << ", "
+                      << std::endl;
 
             struct spi_ioc_transfer tr{
                 .tx_buf = (unsigned long)tx_buf,
