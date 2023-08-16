@@ -55,13 +55,13 @@ void setup(T& berry) {
     //add_alarm_in_ms(2000, alarm_callback, NULL, false);
 }
 
-int main()
+int main(int argc, char **argv)
 {
     //PICO berry;
     Zero2W berry;
     setup(berry);
     berry.spi().deselect();
-    berry.spi().numModules(1);
+    berry.spi().numModules((argc > 2) ? 2 : 1);
     berry.spi().open();
 
     MAX7219 max7219(berry.spi());
@@ -73,6 +73,18 @@ int main()
     max7219.setBrightness(8);
 
     max7219.clear(0);
+    if (argc > 2) {
+        max7219.setNumber(0, atoi(argv[1]));
+        max7219.setNumber(1, atoi(argv[2]));
+    }
+    else if (argc > 1)
+    {
+        max7219.setNumber(0, atoi(argv[1]));
+    }
+    else
+    {
+        max7219.setNumber(0, 12345678);
+    }
     max7219.setNumber(0, 10);
     //max7219.setNumber(0, 12345678);
     //max7219.setNumber(1, 87654321);
