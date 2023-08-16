@@ -68,7 +68,10 @@ namespace nl::rakis::raspberry::interfaces::zero2w
             tx_buf[1] = value[0];
             tx_buf[2] = value[1];
 
-            std::cerr << std::format("Writing {:02x} {:02x} {:02x}\n", tx_buf[0], tx_buf[1], tx_buf[2]);
+            std::cerr << "Writing "
+                      << std::hex << std::setw(2) << std::setfill('0') << tx_buf[0] << ", "
+                      << std::hex << std::setw(2) << std::setfill('0') << tx_buf[1] << ", "
+                      << std::hex << std::setw(2) << std::setfill('0') << tx_buf[2] << std::endl;
 
             struct spi_ioc_transfer tr{
                 .tx_buf = (unsigned long)tx_buf,
