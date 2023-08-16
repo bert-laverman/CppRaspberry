@@ -45,11 +45,6 @@ namespace nl::rakis::raspberry::interfaces::zero2w
         std::string interface_;
         int fd_;
 
-        uint csPin_;
-        uint sckPin_;
-        uint mosiPin_;
-        uint misoPin_;
-
     protected:
         unsigned long bytes2buf(uint8_t byte0, uint8_t byte1, uint8_t byte2, uint8_t byte3) const
         {
@@ -100,16 +95,12 @@ namespace nl::rakis::raspberry::interfaces::zero2w
         }
 
     public:
-        Zero2WSPI(const char *interface, uint csPin, uint sckPin, uint mosiPin, uint misoPin)
-            : interface_(interface), SPI(csPin, sckPin, mosiPin, misoPin)
+        Zero2WSPI(const char *interface)
+            : interface_(interface), SPI()
         {
         }
 
-        Zero2WSPI(uint csPin, uint sckPin, uint mosiPin, uint misoPin) : Zero2WSPI(spi0, csPin, sckPin, mosiPin, misoPin)
-        {
-        }
-
-        Zero2WSPI() : Zero2WSPI(+DefaultPin::SPI0_CS, +DefaultPin::SPI0_SCK, +DefaultPin::SPI0_MOSI, +DefaultPin::SPI0_MISO)
+        Zero2WSPI() : Zero2WSPI(spi0)
         {
         }
 
