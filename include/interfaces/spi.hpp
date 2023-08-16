@@ -27,8 +27,6 @@ namespace nl::rakis::raspberry::interfaces
         {
         }
 
-        virtual void writeBlocking(std::array<uint8_t, 2> const &value) =0;
-
     public:
         virtual ~SPI() = default;
 
@@ -47,32 +45,9 @@ namespace nl::rakis::raspberry::interfaces
 
         virtual void open() =0;
 
-        inline void write(std::array<uint8_t, 2> const &value)
-        {
-            select();
-            writeBlocking(value);
-            deselect();
-        }
+        virtual void writeAll(std::array<uint8_t, 2> const &value) =0;
 
-        inline void writeAll(std::array<uint8_t, 2> const &value)
-        {
-            select();
-            for (uint module = 0; module < num_modules_; ++module)
-            {
-                writeBlocking(value);
-            }
-            deselect();
-        }
-
-        inline void writeAll(std::function<std::array<uint8_t, 2>(uint)> const &value)
-        {
-            select();
-            for (uint module = 0; module < num_modules_; ++module)
-            {
-                writeBlocking(value(module));
-            }
-            deselect();
-        }
+        virtual void writeAll(std::function<std::array<uint8_t, 2>(uint)> const &value) =0;
     };
 
 } // namespace nl::rakis::raspberry::interfaces

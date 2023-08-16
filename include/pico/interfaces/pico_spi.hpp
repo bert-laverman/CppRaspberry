@@ -144,6 +144,33 @@ namespace nl::rakis::raspberry::interfaces
             }
             deselect();
         }
+
+        virtual void write(std::array<uint8_t, 2> const &value)
+        {
+            select();
+            writeBlocking(value);
+            deselect();
+        }
+
+        virtual void writeAll(std::array<uint8_t, 2> const &value)
+        {
+            select();
+            for (uint module = 0; module < num_modules_; ++module)
+            {
+                writeBlocking(value);
+            }
+            deselect();
+        }
+
+        virtual void writeAll(std::function<std::array<uint8_t, 2>(uint)> const &value)
+        {
+            select();
+            for (uint module = 0; module < num_modules_; ++module)
+            {
+                writeBlocking(value(module));
+            }
+            deselect();
+        }
     };
 
 } // namespace nl::rakis::raspberry::interfaces

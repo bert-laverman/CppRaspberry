@@ -60,27 +60,34 @@ namespace nl::rakis::raspberry::interfaces::zero2w
             return u.buf;
         }
 
-        virtual void writeBlocking(std::array<uint8_t, 2> const &value)
+        void writeBlocking(std::function<std::array<uint8_t, 2>(uint)> const &value)
         {
-            uint8_t tx_buf[3];
-            uint8_t rx_buf[3];
+            const size_t bufSize{1 + numModules() * 2};
+            std::vector<uint8_t> tx_buf;
+            std::vector<uint8_t> rx_buf;
 
-            std::memset(tx_buf, 0, sizeof(tx_buf));
-            std::memset(rx_buf, 0, sizeof(rx_buf));
+            tx_buf.resize(bufSize);
+            tx_buf.assign(bufSize, 0);
+            rx_buf.resize(bufSize);
+            rx_buf.assign(bufSize, 0);
 
             tx_buf[0] = 0x40;
-            tx_buf[1] = value[0];
-            tx_buf[2] = value[1];
+            for (uint i = 0; i < numModules(); ++i)
+            {
+                auto const &bytes = value(i);
+                tx_buf[1 + i * 2] = bytes[0];
+                tx_buf[2 + i * 2] = bytes[1];
+            }
 
-            std::cerr << "Writing "
-                      << hex(tx_buf[0] >> 4) << hex(tx_buf[0] & 0x0f) << ", "
-                      << hex(tx_buf[1] >> 4) << hex(tx_buf[1] & 0x0f) << ", "
-                      << hex(tx_buf[2] >> 4) << hex(tx_buf[2] & 0x0f) << std::endl;
+            std::cerr << "Writing ";
+            for (auto const &byte : tx_buf)
+                std::cerr  << hex(byte >> 4) << hex(byte & 0x0f) << " ";
+            std::cerr << std::endl;
 
             struct spi_ioc_transfer tr{
-                .tx_buf = (unsigned long)tx_buf,
-                .rx_buf = (unsigned long)rx_buf,
-                .len = 3,
+                .tx_buf = (unsigned long)(tx_buf.data()),
+                .rx_buf = (unsigned long)(rx_buf.data()),
+                .len = bufSize,
                 .speed_hz = 5000000,
                 .delay_usecs = 0,
                 .bits_per_word = 8,
@@ -124,6 +131,15 @@ namespace nl::rakis::raspberry::interfaces::zero2w
         {
         }
 
+        virtual void writeAll(std::array<uint8_t, 2> const &value)
+        {
+            writeBlocking([value](uint) { return value; });
+        }
+
+        virtual void writeAll(std::function<std::array<uint8_t, 2>(uint)> const &value)
+        {
+            writeBlocking(value);
+        }
     };
 
 } // namespace nl::rakis::raspberry::interfaces::zero2w
