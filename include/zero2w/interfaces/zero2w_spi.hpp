@@ -6,6 +6,7 @@
 #include <array>
 #include <functional>
 #include <string>
+#include <cstring>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -55,9 +56,18 @@ namespace nl::rakis::raspberry::interfaces::zero2w
 
         virtual void writeBlocking(std::array<uint8_t, 2> const &value)
         {
+            uint8_t tx_buf[3];
+            uint8_t rx_buf[3];
+
+            std::memset(tx_buf, 0, sizeof(tx_buf));
+            std::memset(rx_buf, 0, sizeof(rx_buf));
+
+            tx_buf[0] = 0x40;
+            tx_buf[1] = value[0];
+            tx_buf[2] = value[1];
             struct spi_ioc_transfer tr{
-                .tx_buf = bytes2buf(0x40, value[0], value[1], 0),
-                .rx_buf = 0,
+                .tx_buf = (unsigned long)tx_buf,
+                .rx_buf = (unsigned long)rx_buf,
                 .len = 3,
                 .speed_hz = 5000000,
                 .delay_usecs = 0,
