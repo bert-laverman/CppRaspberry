@@ -46,17 +46,11 @@ namespace nl::rakis::raspberry::interfaces::zero2w
         int fd_;
 
     protected:
-        unsigned long bytes2buf(uint8_t byte0, uint8_t byte1, uint8_t byte2, uint8_t byte3) const
-        {
-            union {
-                uint8_t bytes[4];
-                unsigned long buf;
-            } u{.bytes = {byte0, byte1, byte2, byte3}};
-            return u.buf;
-        }
-
         void writeBlocking(std::function<std::array<uint8_t, 2>(uint)> const &value)
         {
+            if (fd_ < 0) {
+                open();
+            }
             const size_t bufSize{1 + numModules() * 2};
             std::vector<uint8_t> tx_buf;
             std::vector<uint8_t> rx_buf;
