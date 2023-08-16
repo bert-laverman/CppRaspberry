@@ -89,6 +89,7 @@ namespace nl::rakis::raspberry::interfaces::zero2w
                 .cs_change = 0,
                 .tx_nbits = 0,
                 .rx_nbits = 0,
+                .word_delay_usecs= 0,
                 .pad = 0,
                 };
             ioctl(fd_, SPI_IOC_MESSAGE(1), &tr);
@@ -96,7 +97,7 @@ namespace nl::rakis::raspberry::interfaces::zero2w
 
     public:
         Zero2WSPI(const char *interface)
-            : interface_(interface), SPI()
+            : SPI(), interface_(interface), fd_(-1)
         {
         }
 
