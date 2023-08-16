@@ -47,7 +47,9 @@ int main(int argc, char **argv)
     max7219.startup();
     max7219.setBrightness(8);
 
-    max7219.clear(0);
+    for (unsigned i = 0; i < berry.spi(0).numModules(); i++) {
+        max7219.clear(i);
+    }
     if (argc > 2) {
         max7219.setNumber(0, atoi(argv[1]));
         max7219.setNumber(1, atoi(argv[2]));
