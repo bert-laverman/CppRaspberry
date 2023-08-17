@@ -24,6 +24,10 @@ public:
     virtual interfaces::SPI& spi([[maybe_unused]] unsigned num = 0) {
         return spi0_;
     };
+    virtual interfaces::I2C& i2c([[maybe_unused]] unsigned num = 0) {
+        return i2c0_;
+    };
+
     virtual void sleepMs(unsigned ms) {
         std::this_thread::sleep_for(std::chrono::milliseconds(ms));
     };

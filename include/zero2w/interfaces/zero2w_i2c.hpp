@@ -37,7 +37,7 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             fd_ = ::open(interface_.c_str(), O_RDWR);
         }
 
-        virtual bool write(uint8_t address, std::span<uint8_t> const& value) override {
+        virtual bool write(uint8_t address, [[maybe_unused]] std::span<uint8_t> const& value) override {
             if (fd_ < 0) {
                 open();
             }
