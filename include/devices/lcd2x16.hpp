@@ -39,7 +39,7 @@ public:
         i2c_.write(address_, cmd, 1);
     }
     inline void print(unsigned line, std::string s) {
-        uint8_t cmd[] = { 0x80 | (line ? 0x40 : 0x00) };
+        uint8_t cmd[] = { uint8_t(0x80 | (line ? 0x40 : 0x00)) };
         i2c_.write(address_, cmd, 1);
         i2c_.write(address_, reinterpret_cast<uint8_t const*>(s.data()), s.size());
     }
