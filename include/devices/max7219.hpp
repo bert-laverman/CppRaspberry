@@ -32,12 +32,7 @@ private:
     interfaces::SPI& spi_;
 
     std::vector<std::array<uint8_t, 8>> buffer_;
-
-    void writeBuffers() {
-        for (unsigned pos = 0; pos < 8; ++pos) {
-            spi_.writeAll([pos,this](unsigned module){ return std::array<uint8_t, 2>{uint8_t(CMD_DIGIT0 + pos), buffer_[module][pos]}; });
-        }
-    }
+    bool writeImmediately_{true};
 
 public:
     MAX7219(interfaces::SPI& spi) : spi_(spi) {
@@ -77,9 +72,18 @@ public:
         spi_.writeAll(buf);
     }
 
+    inline void sendData() const {
+        for (unsigned pos = 0; pos < 8; ++pos) {
+            spi_.writeAll([pos,this](unsigned module){ return std::array<uint8_t, 2>{uint8_t(CMD_DIGIT0 + pos), buffer_[module][pos]}; });
+        }
+    }
+
+    inline bool writeImmediately() const { return writeImmediately_; }
+    inline void writeImmediately(bool value) { writeImmediately_ = value; }
+
     inline void clear(unsigned module) {
         buffer_[module].fill(0x0f);
-        writeBuffers();
+        if (writeImmediately()) sendData();
     }
 
     inline void setNumber(unsigned module, unsigned value) {
@@ -88,7 +92,7 @@ public:
         for (unsigned pos = 0; (value > 0) && (pos < 8); ++pos, value /= 10) {
             buffer_[module][pos] = (value % 10);
         }
-        writeBuffers();
+        if (writeImmediately()) sendData();
     }
 };
 

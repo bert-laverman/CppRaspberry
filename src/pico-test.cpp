@@ -1,9 +1,11 @@
 // Copyright 2023 by Bert Laverman, All rights reserved.
 
+#include <string>
+#include <vector>
+#include <iostream>
+
 #include <raspberry_pi.hpp>
 #include <devices/max7219.hpp>
-
-#include <stdio.h>
 
 using nl::rakis::raspberry::RaspberryPi;
 using nl::rakis::raspberry::interfaces::SPI;
@@ -34,10 +36,59 @@ using nl::rakis::raspberry::devices::MAX7219;
     // Timer example code - This example fires off the callback after 2000ms
     //add_alarm_in_ms(2000, alarm_callback, NULL, false);
 
-int main(int argc, char **argv)
+struct Options {
+    bool verbose;
+    int numModules;
+    int module;
+    std::string command;
+    std::vector<std::string> contents;
+};
+
+static bool parseArgs(Options& options, int argc, const char **argv) {
+    options.verbose = false;
+    options.numModules = 1;
+    options.module = 0;
+    options.command = "clear";
+    options.contents.clear();
+
+    int i = 1;
+    for (; (i < argc) && (argv[i][0] == '-'); ++i) {
+        std::string arg(argv[i]);
+        if ((arg == "-v") || (arg == "--verbose")) {
+            options.verbose = true;
+        }
+        else if ((arg == "-n") || (arg == "--num-modules")) {
+            if (++i < argc) {
+                options.numModules = atoi(argv[i]);
+            }
+            else {
+                std::cerr << "Missing argument for -n\n";
+                return false;
+            }
+        }
+        else if ((arg == "-m") || (arg == "--module")) {
+            if (++i < argc) {
+                options.module = atoi(argv[i]);
+            }
+            else {
+                std::cerr << "Missing argument for -m\n";
+                return false;
+            }
+        }
+        else {
+            std::cerr << "Unknown option '" << arg << "'\n";
+            return false;
+        }
+    }
+    if (i < argc) { options.command = argv[i++]; }
+    while (i < argc) { options.contents.push_back(argv[i++]); }
+    return true;
+}
+
+
+int main(int argc, const char **argv)
 {
     RaspberryPi& berry(*RaspberryPi::instance());
-    berry.spi(0).numModules(((argc == 1) || (argc > 2)) ? 2 : 1);
 
     MAX7219 max7219(berry.spi(0));
     max7219.shutdown();
@@ -46,23 +97,37 @@ int main(int argc, char **argv)
     max7219.setDecodeMode(255);
     max7219.startup();
     max7219.setBrightness(8);
+    max7219.writeImmediately(false);
 
-    for (unsigned i = 0; i < berry.spi(0).numModules(); i++) {
-        max7219.clear(i);
+    Options options;
+    if (!parseArgs(options, argc, argv)) {
+        return 1;
     }
-    if (argc > 2) {
-        max7219.setNumber(0, atoi(argv[1]));
-        max7219.setNumber(1, atoi(argv[2]));
+
+    berry.spi(0).numModules(options.numModules);
+    if (options.command == "clear") {
+        if (options.module == 0) {
+            for (int i = 0; i < options.numModules; ++i) {
+                max7219.clear(i);
+            }
+        } else {
+            max7219.clear(options.module-1);
+        }
+    } else if (options.command == "set") {
+        if (options.module != 0) {
+            max7219.clear(options.module-1);
+            max7219.setNumber(options.module-1, atoi(options.contents[0].c_str()));
+        } else {
+            for (int i = 0; i < options.numModules; ++i) {
+                max7219.clear(i);
+                max7219.setNumber(i, atoi(options.contents[i].c_str()));
+            }
+        }
+    } else {
+        std::cerr << "Unknown command '" << options.command << "'\n";
+        return 1;
     }
-    else if (argc > 1)
-    {
-        max7219.setNumber(0, atoi(argv[1]));
-    }
-    else
-    {
-        max7219.setNumber(0, 12345678);
-        max7219.setNumber(1, 87654321);
-    }
+    max7219.sendData();
 
     return 0;
 }
