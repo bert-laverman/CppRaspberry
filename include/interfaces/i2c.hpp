@@ -27,6 +27,6 @@ namespace nl::rakis::raspberrypi::interfaces
         inline bool verbose() const { return verbose_; }
         inline void verbose(bool verbose) { verbose_ = verbose; }
         
-        virtual bool write(uint8_t address, std::span<uint8_t> const & value) =0;
+        virtual bool write(uint8_t address, const uint8_t* buf, unsigned len) =0;
     };
 }

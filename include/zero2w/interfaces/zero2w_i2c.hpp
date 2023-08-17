@@ -24,6 +24,21 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
         std::string interface_;
         int fd_;
 
+        void open()
+        {
+            if (fd_ >= 0) {
+                return;
+            }
+            if (verbose()) {
+                std::cerr << "Opening " << interface_ << std::endl;
+            }
+            fd_ = ::open(interface_.c_str(), O_RDWR);
+        }
+
+        void writeCmd(uint8_t address, uint8_t cmd) {
+
+        }
+
     public:
         Zero2WI2C() : interface_(i2c1), fd_(-1) {}
 
@@ -33,27 +48,24 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             }
         }
 
-        void open()
-        {
-            if (verbose()) {
-                std::cerr << "Opening " << interface_ << std::endl;
-            }
-            fd_ = ::open(interface_.c_str(), O_RDWR);
-        }
-
-        virtual bool write(uint8_t address, [[maybe_unused]] std::span<uint8_t> const& value) override {
+        virtual bool write(uint8_t address, const uint8_t* buf, unsigned len) override {
             if (fd_ < 0) {
                 open();
             }
             if (verbose()) {
                 std::cerr << "Trying to select device at 0x" << hex(address >> 4) << hex(address & 0x0f) << " for transfer." << std::endl;
             }
-            if (ioctl(fd_, I2C_SLAVE, address) < 0) {
+            if (::ioctl(fd_, I2C_SLAVE, address) < 0) {
                 if (verbose()) {
                     std::cerr << "Failed to select device at 0x" << hex(address >> 4) << hex(address & 0x0f) << " for transfer. Errno=" << errno << std::endl;
                 }
                 return false;
             }
+            if (verbose()) {
+                std::cerr << "Sending " << len << " byte(s)." << std::endl;
+            }
+            ::write(fd_, buf, len);
+
             return true;
         }
     };
