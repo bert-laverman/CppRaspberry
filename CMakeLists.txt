@@ -43,7 +43,7 @@ pico_set_program_name(pico-test "pico-test")
 pico_set_program_version(pico-test "0.1")
 
 pico_enable_stdio_uart(pico-test 1)
-pico_enable_stdio_usb(pico-test 0)
+pico_enable_stdio_usb(pico-test 1)
 
 add_compile_definitions(TARGET_PICO)
 
@@ -62,6 +62,7 @@ if (TARGET_PICO)
 # Add pico_stdlib library which aggregates commonly used features
 target_link_libraries(pico-test
     hardware_spi
-    pico_stdlib)
+    pico_stdlib
+    pico_stdio_usb)
 
 endif (TARGET_PICO)

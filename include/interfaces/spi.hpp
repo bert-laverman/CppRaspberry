@@ -14,6 +14,7 @@ namespace nl::rakis::raspberry::interfaces
     class SPI
     {
         unsigned num_modules_{1}; // Number of devices daisy-chained
+        bool verbose_{false};
 
     protected:
         SPI() = default;
@@ -25,15 +26,12 @@ namespace nl::rakis::raspberry::interfaces
     public:
         virtual ~SPI() = default;
 
-        inline void numModules(unsigned num_modules)
-        {
-            num_modules_ = num_modules;
-        }
-        inline unsigned numModules() const
-        {
-            return num_modules_;
-        }
+        inline unsigned numModules() const { return num_modules_; }
+        inline void numModules(unsigned num_modules) { num_modules_ = num_modules; }
 
+        inline bool verbose() const { return verbose_; }
+        inline void verbose(bool verbose) { verbose_ = verbose; }
+        
         virtual void select() =0;
 
         virtual void deselect() =0;

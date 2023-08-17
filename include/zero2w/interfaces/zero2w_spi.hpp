@@ -68,11 +68,12 @@ namespace nl::rakis::raspberry::interfaces::zero2w
                 tx_buf[2 + i * 2] = bytes[1];
             }
 
-            std::cerr << "Writing ";
-            for (auto const &byte : tx_buf)
-                std::cerr  << hex(byte >> 4) << hex(byte & 0x0f) << " ";
-            std::cerr << std::endl;
-
+            if (verbose()) {
+                std::cerr << "Writing ";
+                for (auto const &byte : tx_buf)
+                    std::cerr  << hex(byte >> 4) << hex(byte & 0x0f) << " ";
+                std::cerr << std::endl;
+            }
             struct spi_ioc_transfer tr{
                 .tx_buf = (unsigned long)(tx_buf.data()),
                 .rx_buf = (unsigned long)(rx_buf.data()),

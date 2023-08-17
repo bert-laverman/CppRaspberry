@@ -4,6 +4,8 @@
 // Purpose: General Pico management code
 
 #include <cstdint>
+#include <chrono>
+#include <thread>
 
 #include <raspberry_pi.hpp>
 #include "interfaces/zero2w_spi.hpp"
@@ -20,6 +22,9 @@ public:
 
     virtual interfaces::SPI& spi([[maybe_unused]] unsigned num = 0) {
         return spi0_;
+    };
+    virtual void sleepMs(unsigned ms) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(ms));
     };
 };
 

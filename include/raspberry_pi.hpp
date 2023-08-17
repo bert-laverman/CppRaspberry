@@ -13,6 +13,8 @@ namespace nl::rakis::raspberry {
 class RaspberryPi {
     static RaspberryPi* instance_;
 
+    bool verbose_{false};
+
 public:
     RaspberryPi() = default;
     virtual ~RaspberryPi() = default;
@@ -21,11 +23,16 @@ public:
     RaspberryPi& operator=(RaspberryPi const&) = delete;
     RaspberryPi& operator=(RaspberryPi&&) = default;
 
-    inline static RaspberryPi *instance() {
-        return instance_;
-    }
+    RaspberryPi(bool verbose) : verbose_(verbose) {}
+
+    static RaspberryPi *instance(bool verbose = false);
 
     virtual interfaces::SPI& spi(unsigned num = 0) = 0;
+
+    inline bool verbose() const { return verbose_; }
+    inline void verbose(bool verbose) { verbose_ = verbose; }
+
+    virtual void sleepMs(unsigned ms) = 0;
 };
 
 } // namespace nl::rakis::raspberry

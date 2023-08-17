@@ -35,6 +35,8 @@ private:
     bool padding_{false};
     bool writeImmediately_{true};
 
+    bool verbose_{false};
+
 public:
     MAX7219(interfaces::SPI& spi) : spi_(spi) {
         buffer_.resize(spi_.numModules());
@@ -82,6 +84,9 @@ public:
     inline bool writeImmediately() const { return writeImmediately_; }
     inline void writeImmediately(bool value) { writeImmediately_ = value; }
 
+    inline bool verbose() const { return verbose_; }
+    inline void verbose(bool value) { verbose_ = value; }
+    
     inline void clear(unsigned module) {
         buffer_[module].fill(0x0f);
         if (writeImmediately()) sendData();

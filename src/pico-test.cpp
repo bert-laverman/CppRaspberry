@@ -3,8 +3,6 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <chrono>
-#include <thread>
 
 #include <raspberry_pi.hpp>
 #include <devices/max7219.hpp>
@@ -132,7 +130,7 @@ int main(int argc, const char **argv)
                 max7219.setNumber(i, count);
             }
             max7219.sendData();
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            berry.sleepMs(1000);
             --count;
         }
     } else {
