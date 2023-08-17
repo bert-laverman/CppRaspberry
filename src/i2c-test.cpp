@@ -8,6 +8,8 @@
 #include <array>
 #include <iostream>
 
+#include <devices/lcd2x16.hpp>
+
 using namespace nl::rakis::raspberrypi;
 
 inline char hex(int value)
@@ -19,15 +21,20 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] const char** argv )
 {
     RaspberryPi& berry(*RaspberryPi::instance(true));
 
-    for (unsigned i = 0x20 ; i < 0x30 ; i++) {
-        std::cerr << "Device 0x" << hex(i >> 4) << hex(i & 0x0f) << ": ";
+    devices::LCD2x16 lcd(berry.i2c());
 
-        std::array<uint8_t, 16> cmd = { 0x00 };
-        if (berry.i2c().write(i, cmd.data(), 1)) {
-            std::cerr << "Found" << std::endl;
-        } else {
-            std::cerr << "Not found" << std::endl;
-        }
-    }
+    std::cerr << "Clearing display" << std::endl;
+    lcd.clear();
+    lcd.light();
+    berry.sleepMs(1000);
+
+    std::cerr << "Printing first line" << std::endl;
+    lcd.print(0, "Hello, world!");
+    berry.sleepMs(1000);
+
+    std::cerr << "Goodbye" << std::endl;
+    lcd.clear();
+    lcd.dark();
+
     return 0;
 }

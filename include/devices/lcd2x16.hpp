@@ -14,10 +14,6 @@ class LCD2x16 {
     interfaces::I2C& i2c_;
     unsigned address_{0x27};
 
-    bool write(std::span<uint8_t> const& data) {
-        return i2c_.write(address_, data);
-    }
-
 public:
     LCD2x16(interfaces::I2C& i2c) : i2c_(i2c) {}
     LCD2x16(LCD2x16 const&) = default;
@@ -26,8 +22,26 @@ public:
     LCD2x16& operator=(LCD2x16&&) = default;
     virtual ~LCD2x16() = default;
 
-    void clear() {
-        
+    inline void clear() {
+        uint8_t cmd[] = { 0x01 };
+        i2c_.write(address_, cmd, 1);
+    }
+    inline void home() {
+        uint8_t cmd[] = { 0x02 };
+        i2c_.write(address_, cmd, 1);
+    }
+    inline void dark() {
+        uint8_t cmd[] = { 0x00 };
+        i2c_.write(address_, cmd, 1);
+    }
+    inline void light() {
+        uint8_t cmd[] = { 0x0c };
+        i2c_.write(address_, cmd, 1);
+    }
+    inline void print(unsigned line, std::string s) {
+        uint8_t cmd[] = { 0x80 | (line ? 0x40 : 0x00) };
+        i2c_.write(address_, cmd, 1);
+        i2c_.write(address_, reinterpret_cast<uint8_t const*>(s.data()), s.size());
     }
 };
 
