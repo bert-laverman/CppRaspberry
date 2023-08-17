@@ -25,7 +25,7 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
         int fd_;
 
     public:
-        Zero2WI2C() = default;
+        Zero2WI2C() : interface_(i2c1), fd_(-1) {}
 
         virtual ~Zero2WI2C() {
             if (fd_ >= 0) {
