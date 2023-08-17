@@ -60,7 +60,18 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             if (verbose()) {
                 std::cerr << "Sending " << len << " byte(s)." << std::endl;
             }
-            ::write(fd_, buf, len);
+            auto writtenLength = ::write(fd_, buf, len);
+            if (writtenLength < 0) {
+                if (verbose()) {
+                    std::cerr << "Failed to write " << len << " byte(s). Errno=" << errno << std::endl;
+                }
+                return false;
+            }
+            else if (writtenLength < len) {
+                if (verbose()) {
+                    std::cerr << "Failed to write " << len << " byte(s). Only wrote " << writtenLength << " byte(s)." << std::endl;
+                }
+            }
 
             return true;
         }
