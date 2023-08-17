@@ -16,7 +16,7 @@ inline char hex(int value)
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] const char** argv )
 {
-    RaspberryPi& berry(*RaspberryPi::instance());
+    RaspberryPi& berry(*RaspberryPi::instance(true));
 
     for (unsigned i = 0x20 ; i < 0x30 ; i++) {
         std::cerr << "Device 0x" << hex(i >> 4) << hex(i & 0x0f) << ": ";
