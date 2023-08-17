@@ -32,7 +32,7 @@ pico_sdk_init()
 
 endif (TARGET_PICO)
 
-add_executable(pico-test ${CMAKE_CURRENT_LIST_DIR}/src/raspberry_pi.cpp ${CMAKE_CURRENT_LIST_DIR}/src/pico-test.cpp)
+add_executable(pico-test ${CMAKE_CURRENT_LIST_DIR}/src/raspberry_pi.cpp ${CMAKE_CURRENT_LIST_DIR}/src/i2c-test.cpp)
 
 if (TARGET_PICO)
 
