@@ -35,10 +35,6 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             fd_ = ::open(interface_.c_str(), O_RDWR);
         }
 
-        void writeCmd(uint8_t address, uint8_t cmd) {
-
-        }
-
     public:
         Zero2WI2C() : interface_(i2c1), fd_(-1) {}
 
