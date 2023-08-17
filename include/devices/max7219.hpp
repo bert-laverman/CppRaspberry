@@ -32,6 +32,7 @@ private:
     interfaces::SPI& spi_;
 
     std::vector<std::array<uint8_t, 8>> buffer_;
+    bool padding_{false};
     bool writeImmediately_{true};
 
 public:
@@ -89,8 +90,12 @@ public:
     inline void setNumber(unsigned module, unsigned value) {
         buffer_[module].fill(0);
 
-        for (unsigned pos = 0; (value > 0) && (pos < 8); ++pos, value /= 10) {
-            buffer_[module][pos] = (value % 10);
+        for (unsigned pos = 0; (pos < 8); ++pos, value /= 10) {
+            if ((value > 0) || padding_ || (pos == 7)) {
+                buffer_[module][pos] = (value % 10);
+            } else {
+                buffer_[module][pos] = 0x0f;
+            }
         }
         if (writeImmediately()) sendData();
     }
