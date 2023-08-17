@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <chrono>
+#include <thread>
 
 #include <raspberry_pi.hpp>
 #include <devices/max7219.hpp>
@@ -48,7 +50,7 @@ static bool parseArgs(Options& options, int argc, const char **argv) {
     options.verbose = false;
     options.numModules = 1;
     options.module = 0;
-    options.command = "clear";
+    options.command = "demo";
     options.contents.clear();
 
     int i = 1;
@@ -122,6 +124,16 @@ int main(int argc, const char **argv)
                 max7219.clear(i);
                 max7219.setNumber(i, atoi(options.contents[i].c_str()));
             }
+        }
+    } else if (options.command == "demo") {
+        int count = 10000;
+        while ( count > 0) {
+            for (int i = 0; i < options.numModules; ++i) {
+                max7219.setNumber(i, count);
+            }
+            max7219.sendData();
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            --count;
         }
     } else {
         std::cerr << "Unknown command '" << options.command << "'\n";
