@@ -88,7 +88,13 @@ static bool parseArgs(Options& options, int argc, const char **argv) {
 
 int main(int argc, const char **argv)
 {
+    Options options;
+    if (!parseArgs(options, argc, argv)) {
+        return 1;
+    }
+
     RaspberryPi& berry(*RaspberryPi::instance());
+    berry.spi(0).numModules(options.numModules);
 
     MAX7219 max7219(berry.spi(0));
     max7219.shutdown();
@@ -99,12 +105,6 @@ int main(int argc, const char **argv)
     max7219.setBrightness(8);
     max7219.writeImmediately(false);
 
-    Options options;
-    if (!parseArgs(options, argc, argv)) {
-        return 1;
-    }
-
-    berry.spi(0).numModules(options.numModules);
     if (options.command == "clear") {
         if (options.module == 0) {
             for (int i = 0; i < options.numModules; ++i) {
