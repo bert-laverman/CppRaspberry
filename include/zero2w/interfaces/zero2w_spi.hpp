@@ -22,19 +22,6 @@ namespace nl::rakis::raspberry::interfaces::zero2w
     constexpr static const char *spi0{"/dev/spidev0.0"};
     constexpr static const char *spi1{"/dev/spidev0.1"};
 
-    enum class DefaultPin : uint
-    {
-        SPI0_MISO = 9,
-        SPI0_CS = 8,
-        SPI0_SCK = 11,
-        SPI0_MOSI = 10
-    };
-
-    inline consteval uint operator+(DefaultPin pin)
-    {
-        return uint(pin);
-    };
-
     inline char hex(int value)
     {
         return char(value < 10 ? '0' + value : 'a' + value - 10);
@@ -46,7 +33,7 @@ namespace nl::rakis::raspberry::interfaces::zero2w
         int fd_;
 
     protected:
-        void writeBlocking(std::function<std::array<uint8_t, 2>(uint)> const &value)
+        void writeBlocking(std::function<std::array<uint8_t, 2>(unsigned)> const &value)
         {
             if (fd_ < 0) {
                 open();
@@ -61,7 +48,7 @@ namespace nl::rakis::raspberry::interfaces::zero2w
             rx_buf.assign(bufSize, 0);
 
             tx_buf[0] = 0x40;
-            for (uint i = 0; i < numModules(); ++i)
+            for (unsigned i = 0; i < numModules(); ++i)
             {
                 auto const &bytes = value(i);
                 tx_buf[1 + i * 2] = bytes[0];
@@ -120,10 +107,10 @@ namespace nl::rakis::raspberry::interfaces::zero2w
 
         virtual void writeAll(std::array<uint8_t, 2> const &value)
         {
-            writeBlocking([value](uint) { return value; });
+            writeBlocking([value](unsigned) { return value; });
         }
 
-        virtual void writeAll(std::function<std::array<uint8_t, 2>(uint)> const &value)
+        virtual void writeAll(std::function<std::array<uint8_t, 2>(unsigned)> const &value)
         {
             writeBlocking(value);
         }

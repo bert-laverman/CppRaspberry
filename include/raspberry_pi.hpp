@@ -7,6 +7,7 @@
 #include <cstdint>
 
 #include <interfaces/spi.hpp>
+#include <interfaces/i2c.hpp>
 
 namespace nl::rakis::raspberry {
 
@@ -28,6 +29,7 @@ public:
     static RaspberryPi *instance(bool verbose = false);
 
     virtual interfaces::SPI& spi(unsigned num = 0) = 0;
+    virtual interfaces::I2C& i2c(unsigned num = 0) = 0;
 
     inline bool verbose() const { return verbose_; }
     inline void verbose(bool verbose) { verbose_ = verbose; }

@@ -8,13 +8,15 @@
 #include <thread>
 
 #include <raspberry_pi.hpp>
-#include "interfaces/zero2w_spi.hpp"
+#include <zero2w/interfaces/zero2w_spi.hpp>
+#include <zero2w/interfaces/zero2w_i2c.hpp>
 
 
 namespace nl::rakis::raspberry {
 
 class Zero2W : public virtual RaspberryPi {
     interfaces::zero2w::Zero2WSPI spi0_;
+    interfaces::zero2w::Zero2WI2C i2c0_;
 
 public:
     Zero2W(bool verbose =false) : RaspberryPi(verbose), spi0_() {   };
