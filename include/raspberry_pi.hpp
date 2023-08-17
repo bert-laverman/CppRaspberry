@@ -9,7 +9,7 @@
 #include <interfaces/spi.hpp>
 #include <interfaces/i2c.hpp>
 
-namespace nl::rakis::raspberry {
+namespace nl::rakis::raspberrypi {
 
 class RaspberryPi {
     static RaspberryPi* instance_;
@@ -37,4 +37,4 @@ public:
     virtual void sleepMs(unsigned ms) = 0;
 };
 
-} // namespace nl::rakis::raspberry
+} // namespace nl::rakis::raspberrypi

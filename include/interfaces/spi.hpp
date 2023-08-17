@@ -8,7 +8,7 @@
 #include <array>
 #include <functional>
 
-namespace nl::rakis::raspberry::interfaces
+namespace nl::rakis::raspberrypi::interfaces
 {
 
     class SPI
@@ -31,7 +31,7 @@ namespace nl::rakis::raspberry::interfaces
 
         inline bool verbose() const { return verbose_; }
         inline void verbose(bool verbose) { verbose_ = verbose; }
-        
+
         virtual void select() =0;
 
         virtual void deselect() =0;
@@ -41,4 +41,4 @@ namespace nl::rakis::raspberry::interfaces
         virtual void writeAll(std::function<std::array<uint8_t, 2>(unsigned)> const &value) =0;
     };
 
-} // namespace nl::rakis::raspberry::interfaces
+} // namespace nl::rakis::raspberrypi::interfaces

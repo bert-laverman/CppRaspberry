@@ -9,7 +9,7 @@
 #include <interfaces/spi.hpp>
 
 
-namespace nl::rakis::raspberry::devices {
+namespace nl::rakis::raspberrypi::devices {
 
 class MAX7219 {
 public:
@@ -106,4 +106,4 @@ public:
     }
 };
 
-} // namespace nl::rakis::raspberry::devices
+} // namespace nl::rakis::raspberrypi::devices

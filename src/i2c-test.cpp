@@ -7,7 +7,7 @@
 #include <vector>
 #include <iostream>
 
-using namespace nl::rakis::raspberry;
+using namespace nl::rakis::raspberrypi;
 
 inline char hex(int value)
 {

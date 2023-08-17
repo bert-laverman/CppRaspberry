@@ -3,15 +3,19 @@
 // Created: 2021-09-11 14:59:47
 // Purpose: Provide an interface to the simple 2-line, 16 character LCD display
 
+#include <span>
+#include <string>
+
 #include <interfaces/i2c.hpp>
 
 namespace nl::rakis::raspberrypi::devices {
 
 class LCD2x16 {
     interfaces::I2C& i2c_;
+    unsigned address_{0x27};
 
-    void write(std::string const& text) {
-        i2c_.write(0x27, std::span<uint8_t>(reinterpret_cast<uint8_t const*>(text.data()), text.size()));
+    bool write(std::span<uint8_t> const& data) {
+        return i2c_.write(address_, data);
     }
 
 public:
@@ -23,7 +27,7 @@ public:
     virtual ~LCD2x16() = default;
 
     void clear() {
-        write("\x1b[2J");
+        
     }
 };
 

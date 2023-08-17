@@ -12,7 +12,7 @@
 #include <zero2w/interfaces/zero2w_i2c.hpp>
 
 
-namespace nl::rakis::raspberry {
+namespace nl::rakis::raspberrypi {
 
 class Zero2W : public virtual RaspberryPi {
     interfaces::zero2w::Zero2WSPI spi0_;
@@ -29,4 +29,4 @@ public:
     };
 };
 
-} // namespace nl::rakis::raspberry
+} // namespace nl::rakis::raspberrypi

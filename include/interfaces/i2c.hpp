@@ -4,9 +4,12 @@
 // Purpose: Provide an interface to the I2C bus
 
 #include <cstdint>
+
 #include <span>
 
-namespace nl::rakis::raspberrypi::interfaces {
+
+namespace nl::rakis::raspberrypi::interfaces
+{
 
     class I2C {
     protected:
@@ -19,6 +22,6 @@ namespace nl::rakis::raspberrypi::interfaces {
     public:
         virtual ~I2C() = default;
 
-        virtual bool write(uint8_t address, std::span<uint8_t> value) =0;
+        virtual bool write(uint8_t address, std::span<uint8_t> const & value) =0;
     };
 }

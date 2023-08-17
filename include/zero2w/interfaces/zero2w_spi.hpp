@@ -16,7 +16,7 @@
 
 #include "../../interfaces/spi.hpp"
 
-namespace nl::rakis::raspberry::interfaces::zero2w
+namespace nl::rakis::raspberrypi::interfaces::zero2w
 {
 
     constexpr static const char *spi0{"/dev/spidev0.0"};
@@ -116,4 +116,4 @@ namespace nl::rakis::raspberry::interfaces::zero2w
         }
     };
 
-} // namespace nl::rakis::raspberry::interfaces::zero2w
+} // namespace nl::rakis::raspberrypi::interfaces::zero2w
