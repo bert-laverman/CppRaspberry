@@ -37,7 +37,7 @@ using nl::rakis::raspberry::devices::MAX7219;
 int main(int argc, char **argv)
 {
     RaspberryPi& berry(*RaspberryPi::instance());
-    berry.spi(0).numModules((argc > 2) ? 2 : 1);
+    berry.spi(0).numModules(((argc == 1) || (argc > 2)) ? 2 : 1);
 
     MAX7219 max7219(berry.spi(0));
     max7219.shutdown();
@@ -61,6 +61,7 @@ int main(int argc, char **argv)
     else
     {
         max7219.setNumber(0, 12345678);
+        max7219.setNumber(1, 87654321);
     }
 
     return 0;

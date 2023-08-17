@@ -3,8 +3,7 @@
 // Created: 2021-09-11 14:59:47
 // Purpose: General Pico management code
 
-#include <pico/stdlib.h>
-
+#include "pico/stdlib.h"
 #include "interfaces/pico_spi.hpp"
 
 namespace nl::rakis::raspberry {

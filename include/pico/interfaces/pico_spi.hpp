@@ -8,6 +8,8 @@
 #include <array>
 #include <functional>
 
+#include <stdio.h>
+#include "pico/stdlib.h"
 #include "hardware/spi.h"
 
 #include <interfaces/spi.hpp>
@@ -47,20 +49,25 @@ namespace nl::rakis::raspberry::interfaces
 
             gpio_init(csPin_);
             gpio_set_dir(csPin_, GPIO_OUT);
-            gpio_init(sckPin_);
-            gpio_set_dir(sckPin_, GPIO_OUT);
-            gpio_init(mosiPin_);
-            gpio_set_dir(mosiPin_, GPIO_OUT);
+            // gpio_init(sckPin_);
+            // gpio_set_dir(sckPin_, GPIO_OUT);
+            // gpio_init(mosiPin_);
+            // gpio_set_dir(mosiPin_, GPIO_OUT);
 
-            gpio_set_function(csPin_, GPIO_FUNC_SPI);
+            // gpio_set_function(csPin_, GPIO_FUNC_SPI);
             gpio_set_function(sckPin_, GPIO_FUNC_SPI);
             gpio_set_function(mosiPin_, GPIO_FUNC_SPI);
             gpio_set_function(misoPin_, GPIO_FUNC_SPI);
 
-            gpio_pull_up(csPin_);
-            gpio_pull_up(sckPin_);
-            gpio_pull_up(mosiPin_);
-            gpio_pull_up(misoPin_);
+            // gpio_pull_up(csPin_);
+            // gpio_pull_up(sckPin_);
+            // gpio_pull_up(mosiPin_);
+            // gpio_pull_up(misoPin_);
+
+            stdio_usb_init();
+            while ( !stdio_usb_connected() ) tight_loop_contents();
+            sleep_ms(1000);
+            printf("Starting up...\n");
         }
 
         PicoSPI(unsigned csPin, unsigned sckPin, unsigned mosiPin, unsigned misoPin) : PicoSPI(spi0, csPin, sckPin, mosiPin, misoPin)
