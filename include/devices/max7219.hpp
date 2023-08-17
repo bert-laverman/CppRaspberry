@@ -91,7 +91,7 @@ public:
         buffer_[module].fill(0);
 
         for (unsigned pos = 0; (pos < 8); ++pos, value /= 10) {
-            if ((value > 0) || padding_ || (pos == 7)) {
+            if ((value > 0) || padding_ || (pos == 0)) {
                 buffer_[module][pos] = (value % 10);
             } else {
                 buffer_[module][pos] = 0x0f;
