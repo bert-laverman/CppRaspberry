@@ -67,7 +67,7 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
                 }
                 return false;
             }
-            else if (writtenLength < len) {
+            else if (static_cast<size_t>(writtenLength) < len) {
                 if (verbose()) {
                     std::cerr << "Failed to write " << len << " byte(s). Only wrote " << writtenLength << " byte(s)." << std::endl;
                 }
