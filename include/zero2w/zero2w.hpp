@@ -19,7 +19,10 @@ class Zero2W : public virtual RaspberryPi {
     interfaces::zero2w::Zero2WI2C i2c0_;
 
 public:
-    Zero2W(bool verbose =false) : RaspberryPi(verbose), spi0_() {   };
+    Zero2W(bool verbose =false) : RaspberryPi(verbose), spi0_(),i2c0_() {
+        spi0_.verbose(verbose);
+        i2c0_.verbose(verbose);
+    };
 
     virtual interfaces::SPI& spi([[maybe_unused]] unsigned num = 0) {
         return spi0_;

@@ -4,6 +4,7 @@
 // Purpose: Provide an interface to the I2C bus on the Raspberry Pi Zero 2 W
 
 #include <string>
+#include <iostream>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -34,6 +35,9 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
 
         void open()
         {
+            if (verbose()) {
+                std::cerr << "Opening " << interface_ << std::endl;
+            }
             fd_ = ::open(interface_.c_str(), O_RDWR);
         }
 
@@ -41,7 +45,13 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             if (fd_ < 0) {
                 open();
             }
+            if (verbose()) {
+                std::cerr << "Trying to select device at 0x" << hex(address >> 4) << hex(address & 0x0f) << " for transfer." << std::endl;
+            }
             if (ioctl(fd_, I2C_SLAVE, address) < 0) {
+                if (verbose()) {
+                    std::cerr << "Failed to select device at 0x" << hex(address >> 4) << hex(address & 0x0f) << " for transfer. Errno=" << errno << std::endl;
+                }
                 return false;
             }
             return true;

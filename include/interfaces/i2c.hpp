@@ -12,6 +12,8 @@ namespace nl::rakis::raspberrypi::interfaces
 {
 
     class I2C {
+        bool verbose_{false};
+
     protected:
         I2C() = default;
         I2C(I2C const &) = default;
@@ -22,6 +24,9 @@ namespace nl::rakis::raspberrypi::interfaces
     public:
         virtual ~I2C() = default;
 
+        inline bool verbose() const { return verbose_; }
+        inline void verbose(bool verbose) { verbose_ = verbose; }
+        
         virtual bool write(uint8_t address, std::span<uint8_t> const & value) =0;
     };
 }
