@@ -19,11 +19,6 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
     constexpr static const char *i2c1 = "/dev/i2c-1";
     constexpr static const char *i2c2 = "/dev/i2c-2";
 
-    inline char hex(int value)
-    {
-        return char(value < 10 ? '0' + value : 'a' + value - 10);
-    }
-
     class Zero2WI2C : public virtual I2C {
         std::string interface_;
         int fd_;

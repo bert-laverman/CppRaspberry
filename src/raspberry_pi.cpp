@@ -3,7 +3,7 @@
 
 #include <raspberry_pi.hpp>
 
-using namespace nl::rakis::raspberry;
+using namespace nl::rakis::raspberrypi;
 
 RaspberryPi *RaspberryPi::instance_ = nullptr;
 

@@ -14,7 +14,7 @@ inline char hex(int value)
     return char(value < 10 ? '0' + value : 'a' + value - 10);
 }
 
-int main(int argc, const char** argv )
+int main([[maybe_unused]] int argc, [[maybe_unused]] const char** argv )
 {
     RaspberryPi& berry(*RaspberryPi::instance());
 
@@ -26,5 +26,5 @@ int main(int argc, const char** argv )
             std::cerr << "Not found" << std::endl;
         }
     }
-
+    return 0;
 }
