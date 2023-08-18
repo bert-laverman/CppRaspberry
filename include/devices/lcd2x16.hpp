@@ -14,11 +14,6 @@ class LCD2x16 {
     interfaces::I2C& i2c_;
     unsigned address_{0x27};
 
-    inline void byte(uint8_t value, uint8_t flags =0) {
-        uint8_t cmd[] = { uint8_t((value & 0xf0) | flags), uint8_t(((value << 4) & 0xf0) | flags) };
-        i2c_.write(address_, cmd, 1);
-    }
-
 public:
     LCD2x16(interfaces::I2C& i2c) : i2c_(i2c) {}
     LCD2x16(LCD2x16 const&) = default;
@@ -32,22 +27,22 @@ public:
     }
 
     inline void clear() {
-        byte(address_, 0x01);
+        i2c_.writeCmd(address_, 0x01);
     }
     inline void home() {
-        byte(address_, 0x02);
+        i2c_.writeCmd(address_, 0x02);
     }
     inline void dark() {
-        byte(address_, 0x00);
+        i2c_.writeCmd(address_, 0x00);
     }
     inline void light() {
-        byte(address_, 0x0c);
+        i2c_.writeCmd(address_, 0x0c);
     }
 
     inline void print(unsigned line, std::string s) {
-        byte(uint8_t(0x80 | (line ? 0x40 : 0x00)));
+        i2c_.writeCmd(address_, uint8_t(0x80 | (line ? 0x40 : 0x00)));
         for (auto c : s) {
-            byte(c, 0x01);
+            i2c_.writeCmd(address_, uint8_t(c | 0x01));
         }
     }
 };
