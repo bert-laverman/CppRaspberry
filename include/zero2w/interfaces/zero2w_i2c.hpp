@@ -88,7 +88,7 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             open();
             selectDevice(address);
 
-            std::cerr << "Writing to 0x" << hex(address >> 4) << hex(address & 0x0f) << ", byte 0x" << hex(cmd >> 4) << hex(cmd & 0x0f) << " with data 0x" << hex(data >> 4) << hex(data & 0x0f)
+            std::cerr << "Writing to 0x" << hex(address >> 4) << hex(address & 0x0f) << ", byte 0x" << hex(cmd >> 4) << hex(cmd & 0x0f) << " with data 0x" << hex(data >> 4) << hex(data & 0x0f);
         }
 
     };
