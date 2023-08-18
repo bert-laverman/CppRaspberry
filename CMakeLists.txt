@@ -65,4 +65,9 @@ target_link_libraries(pico-test
     pico_stdlib
     pico_stdio_usb)
 
+else (TARGET_PICO)
+
+target_link_libraries(pico-test
+    i2c)
+
 endif (TARGET_PICO)
