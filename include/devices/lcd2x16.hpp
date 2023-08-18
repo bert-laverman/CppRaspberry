@@ -30,7 +30,7 @@ class LCD2x16 {
 
     inline void write8Bits(uint8_t value, bool charMode =false) {
         write4Bits((value & 0xf0) + (charMode ? 0x01 : 0x00));
-        write4Bits((value << 4) & 0xf0 + (charMode ? 0x01 : 0x00));
+        write4Bits(((value << 4) & 0xf0) + (charMode ? 0x01 : 0x00));
     }
 
 public:
