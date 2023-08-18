@@ -26,6 +26,10 @@ class LCD2x16 {
 
     inline void write4Bits(uint8_t value) {
         writeCmd(value | LCD_BACKLIGHT);
+        writeCmd(value | 0x04 | LCD_BACKLIGHT);
+        RaspberryPi::instance()->sleepMs(5);
+        writeCmd(value & ~0x04 | LCD_BACKLIGHT);
+        RaspberryPi::instance()->sleepMs(1);
     }
 
     inline void write8Bits(uint8_t value, bool charMode =false) {
