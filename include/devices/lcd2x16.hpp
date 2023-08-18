@@ -62,10 +62,10 @@ public:
     }
 
     inline void clear() {
-        writeCmd(0x01);
+        write8Bits(0x01);
     }
     inline void home() {
-        writeCmd(0x02);
+        write8Bits(0x02);
     }
     inline void dark() {
         writeCmd(0x00);
