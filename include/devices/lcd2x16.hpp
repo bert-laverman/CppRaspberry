@@ -46,16 +46,16 @@ public:
     }
 
     inline void clear() {
-        write8Bits(0x01);
+        writeCmd(0x01);
     }
     inline void home() {
-        write8Bits(0x02);
+        writeCmd(0x02);
     }
     inline void dark() {
-        write8Bits(0x00);
+        writeCmd(0x00);
     }
     inline void light() {
-        write8Bits(0x0c);
+        writeCmd(0x08);
     }
 
     inline void print(unsigned line, const std::string s) {
