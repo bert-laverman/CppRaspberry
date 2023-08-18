@@ -77,7 +77,7 @@ public:
     inline void print(unsigned line, const std::string s) {
         write8Bits((line == 1) ? 0x80 : 0xc0);
         for (auto c : s) {
-            write8Bits(uint8_t(c | 0x01), true);
+            write8Bits(uint8_t(c), true);
         }
     }
 };
