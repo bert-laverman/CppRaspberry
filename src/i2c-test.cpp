@@ -19,7 +19,7 @@ inline char hex(int value)
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] const char** argv )
 {
-    RaspberryPi& berry(*RaspberryPi::instance(true));
+    RaspberryPi& berry(*RaspberryPi::instance(false));
 
     devices::LCD2x16 lcd(berry.i2c());
 
