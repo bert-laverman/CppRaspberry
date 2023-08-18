@@ -80,6 +80,7 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             open();
             selectDevice(address);
 
+            std::cerr << "Writing byte 0x" << hex(cmd) << std::endl;
             i2c_smbus_write_byte(fd_, cmd);
         }
 
@@ -87,6 +88,7 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             open();
             selectDevice(address);
 
+            std::cerr << "Writing byte 0x" << hex(cmd) << " with data 0x" << hex(data) << std::endl;
             i2c_smbus_write_byte_data(fd_, cmd, data);
         }
 
