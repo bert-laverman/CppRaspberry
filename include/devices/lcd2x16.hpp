@@ -15,7 +15,7 @@ class LCD2x16 {
     unsigned address_{0x27};
 
     inline void byte(uint8_t value, uint8_t flags =0) {
-        uint8_t cmd[] = { (value & 0xf0) | flags, ((value << 4) & 0xf0) | flags };
+        uint8_t cmd[] = { uint8_t((value & 0xf0) | flags), uint8_t(((value << 4) & 0xf0) | flags) };
         i2c_.write(address_, cmd, 1);
     }
 
