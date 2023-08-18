@@ -10,10 +10,11 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 
+extern "C" {
 #include <i2c/smbus.h>
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
-
+}
 #include <interfaces/i2c.hpp>
 
 namespace nl::rakis::raspberrypi::interfaces::zero2w {
