@@ -23,6 +23,10 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] const char** argv )
 
     devices::LCD2x16 lcd(berry.i2c());
 
+    std::cerr << "Initialising display" << std::endl;
+    lcd.initDisplay();
+    berry.sleepMs(1000);
+
     std::cerr << "Clearing display" << std::endl;
     lcd.clear();
     lcd.light();

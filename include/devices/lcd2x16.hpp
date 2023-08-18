@@ -45,6 +45,18 @@ public:
         address_ = address;
     }
 
+    inline void initDisplay() {
+        write8Bits(0x03);
+        write8Bits(0x03);
+        write8Bits(0x03);
+        write8Bits(0x02);
+        write8Bits(0x20|0x08|0x00);
+        write8Bits(0x08|0x04);
+        write8Bits(0x01);
+        write8Bits(0x04|0x02);
+        RaspberryPi::instance()->sleepMs(200);
+    }
+
     inline void clear() {
         writeCmd(0x01);
     }
