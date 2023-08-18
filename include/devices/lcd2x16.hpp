@@ -59,9 +59,9 @@ public:
     }
 
     inline void print(unsigned line, const std::string s) {
-        i2c_.writeByte(uint8_t(0x80 | (line ? 0x40 : 0x00)));
+        write8Bits(uint8_t(0x80 | (line ? 0x40 : 0x00)));
         for (auto c : s) {
-            i2c_.writeByte(uint8_t(c | 0x01), true);
+            write8Bits(uint8_t(c | 0x01), true);
         }
     }
 };
