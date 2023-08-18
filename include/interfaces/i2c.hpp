@@ -27,9 +27,9 @@ namespace nl::rakis::raspberrypi::interfaces
         inline bool verbose() const { return verbose_; }
         inline void verbose(bool verbose) { verbose_ = verbose; }
         
-        virtual void writeCmd(uint8_t address, uint8_t value) =0;
+        virtual void writeByte(uint8_t address, uint8_t value) =0;
 
-        virtual void writeData(uint8_t address, uint8_t value, uint8_t data) =0;
+        virtual void writeByteData(uint8_t address, uint8_t value, uint8_t data) =0;
 
     };
 }

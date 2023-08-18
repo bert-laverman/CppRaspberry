@@ -76,14 +76,14 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             close();
         }
 
-        virtual void writeCmd(uint8_t address, uint8_t cmd) override {
+        virtual void writeByte(uint8_t address, uint8_t cmd) override {
             open();
             selectDevice(address);
 
             i2c_smbus_write_byte(fd_, cmd);
         }
 
-        virtual void writeData(uint8_t address, uint8_t cmd, uint8_t data) override {
+        virtual void writeByteData(uint8_t address, uint8_t cmd, uint8_t data) override {
             open();
             selectDevice(address);
 
