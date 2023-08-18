@@ -25,16 +25,14 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] const char** argv )
 
     std::cerr << "Initialising display" << std::endl;
     lcd.initDisplay();
-    berry.sleepMs(1000);
 
     std::cerr << "Clearing display" << std::endl;
     lcd.clear();
     lcd.light();
-    berry.sleepMs(1000);
 
     std::cerr << "Printing first line" << std::endl;
     lcd.print(1, "Hello, world!");
-    berry.sleepMs(1000);
+    berry.sleepMs(5000);
 
     std::cerr << "Goodbye" << std::endl;
     lcd.clear();
