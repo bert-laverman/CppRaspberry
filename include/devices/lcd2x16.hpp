@@ -28,7 +28,7 @@ class LCD2x16 {
         writeCmd(value | LCD_BACKLIGHT);
         writeCmd(value | 0x04 | LCD_BACKLIGHT);
         RaspberryPi::instance()->sleepMs(5);
-        writeCmd(value & ~0x04 | LCD_BACKLIGHT);
+        writeCmd((value & ~0x04) | LCD_BACKLIGHT);
         RaspberryPi::instance()->sleepMs(1);
     }
 

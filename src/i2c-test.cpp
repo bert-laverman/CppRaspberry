@@ -33,7 +33,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] const char** argv )
     berry.sleepMs(1000);
 
     std::cerr << "Printing first line" << std::endl;
-    lcd.print(0, "Hello, world!");
+    lcd.print(1, "Hello, world!");
     berry.sleepMs(1000);
 
     std::cerr << "Goodbye" << std::endl;
