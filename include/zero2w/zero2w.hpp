@@ -31,6 +31,10 @@ public:
         return i2c0_;
     };
 
+    virtual std::ostream& log() {
+        return std::cerr;
+    };
+
     virtual void sleepMs(unsigned ms) {
         std::this_thread::sleep_for(std::chrono::milliseconds(ms));
     };

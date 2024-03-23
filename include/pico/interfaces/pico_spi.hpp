@@ -13,7 +13,7 @@
 
 #include <interfaces/spi.hpp>
 
-namespace nl::rakis::raspberry::interfaces
+namespace nl::rakis::raspberrypi::interfaces
 {
 
     enum class DefaultPin : unsigned
@@ -42,7 +42,7 @@ namespace nl::rakis::raspberry::interfaces
 
     public:
         PicoSPI(spi_inst_t *interface, unsigned csPin, unsigned sckPin, unsigned mosiPin, unsigned misoPin)
-            : SPI(), interface_(interface), csPin_(csPin), sckPin_(sckPin), mosiPin_(mosiPin), misoPin_(misoPin)
+            : interface_(interface), csPin_(csPin), sckPin_(sckPin), mosiPin_(mosiPin), misoPin_(misoPin)
         {
             spi_init(interface_, 10*1000*1000);
 
@@ -60,6 +60,13 @@ namespace nl::rakis::raspberry::interfaces
 
         PicoSPI() : PicoSPI(+DefaultPin::SPI0_CS, +DefaultPin::SPI0_SCK, +DefaultPin::SPI0_MOSI, +DefaultPin::SPI0_MISO)
         {
+        }
+
+        virtual ~PicoSPI() = default;
+
+    protected:
+        virtual std::ostream &log() {
+            return std::cout;
         }
 
     public:
@@ -98,4 +105,4 @@ namespace nl::rakis::raspberry::interfaces
         }
     };
 
-} // namespace nl::rakis::raspberry::interfaces
+} // namespace nl::rakis::raspberrypi::interfaces

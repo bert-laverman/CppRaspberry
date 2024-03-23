@@ -3,6 +3,7 @@
 // Created: 2021-09-11 14:59:47
 // Purpose: Provide an interface to the Raspberry Pi
 
+#include <iostream>
 
 #include <cstdint>
 
@@ -31,6 +32,7 @@ public:
     virtual interfaces::SPI& spi(unsigned num = 0) = 0;
     virtual interfaces::I2C& i2c(unsigned num = 0) = 0;
 
+    virtual std::ostream& log() = 0;
     inline bool verbose() const { return verbose_; }
     inline void verbose(bool verbose) { verbose_ = verbose; }
 

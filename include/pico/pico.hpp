@@ -9,11 +9,10 @@
 #include "pico/stdio.h"
 #include "hardware/spi.h"
 
-#include "interfaces/pico_spi.hpp"
+#include <raspberry_pi.hpp>
+#include <pico/interfaces/pico_spi.hpp>
 
-namespace nl::rakis::raspberry {
-
-class RaspberryPi;
+namespace nl::rakis::raspberrypi {
 
 class PICO : public virtual RaspberryPi {
     interfaces::PicoSPI spi0_;
@@ -26,7 +25,7 @@ public:
             stdio_usb_init();
             while ( !stdio_usb_connected() ) tight_loop_contents();
             sleepMs(1000);
-            printf("Starting up...\n");
+            log() << "Starting up...\n" << std::flush;
         }
     };
 
@@ -34,9 +33,17 @@ public:
         return spi0_;
     };
 
+    virtual interfaces::I2C& i2c([[maybe_unused]] unsigned num = 0) {
+        throw std::runtime_error("I2C not implemented");
+    };
+
+    virtual std::ostream& log() {
+        return std::cout;
+    };
+    
     virtual void sleepMs(unsigned ms) {
         sleep_ms(ms);
     };
 };
 
-} // namespace nl::rakis::raspberry
+} // namespace nl::rakis::raspberrypi

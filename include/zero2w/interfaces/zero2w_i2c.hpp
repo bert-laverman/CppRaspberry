@@ -27,6 +27,12 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
         int fd_;
         uint8_t address_{0};
 
+    protected:
+        virtual std::ostream &log() {
+            return std::cerr;
+        }
+
+    private:
         bool open()
         {
             if (fd_ >= 0) {
@@ -34,12 +40,12 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             }
 
             if (verbose()) {
-                std::cerr << "Opening " << interface_ << std::endl;
+                log() << "Opening " << interface_ << std::endl;
             }
             fd_ = ::open(interface_.c_str(), O_RDWR);
             if (fd_ < 0) {
                 if (verbose()) {
-                    std::cerr << "Failed to open " << interface_ << ". Errno=" << errno << std::endl;
+                    log() << "Failed to open " << interface_ << ". Errno=" << errno << std::endl;
                 }
                 return false;
             }
@@ -58,11 +64,11 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
                 return true;
             }
             if (verbose()) {
-                std::cerr << "Select device at 0x" << hex(address >> 4) << hex(address & 0x0f) << " for transfer." << std::endl;
+                log() << "Select device at 0x" << hex(address >> 4) << hex(address & 0x0f) << " for transfer." << std::endl;
             }
             if (::ioctl(fd_, I2C_SLAVE, address) < 0) {
                 if (verbose()) {
-                    std::cerr << "Failed to select device at 0x" << hex(address >> 4) << hex(address & 0x0f) << " for transfer. Errno=" << errno << std::endl;
+                    log() << "Failed to select device at 0x" << hex(address >> 4) << hex(address & 0x0f) << " for transfer. Errno=" << errno << std::endl;
                 }
                 return false;
             }
@@ -80,7 +86,7 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             open();
             selectDevice(address);
 
-            std::cerr << "Writing to 0x" << hex(address >> 4) << hex(address & 0x0f) << ", byte 0x" << hex(cmd >> 4) << hex(cmd & 0x0f) << std::endl;
+            log() << "Writing to 0x" << hex(address >> 4) << hex(address & 0x0f) << ", byte 0x" << hex(cmd >> 4) << hex(cmd & 0x0f) << std::endl;
             i2c_smbus_write_byte(fd_, cmd);
         }
 
@@ -88,7 +94,7 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             open();
             selectDevice(address);
 
-            std::cerr << "Writing to 0x" << hex(address >> 4) << hex(address & 0x0f) << ", byte 0x" << hex(cmd >> 4) << hex(cmd & 0x0f) << " with data 0x" << hex(data >> 4) << hex(data & 0x0f);
+            log() << "Writing to 0x" << hex(address >> 4) << hex(address & 0x0f) << ", byte 0x" << hex(cmd >> 4) << hex(cmd & 0x0f) << " with data 0x" << hex(data >> 4) << hex(data & 0x0f);
         }
 
     };

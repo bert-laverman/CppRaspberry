@@ -10,6 +10,7 @@ if (TARGET_PICO)
 set(PICO_SDK_PATH "/home/bertl/pico-sdk")
 
 set(PICO_BOARD pico CACHE STRING "Board type")
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 # initialize the SDK based on PICO_SDK_PATH
 # note: this must happen before project()
@@ -32,7 +33,9 @@ pico_sdk_init()
 
 endif (TARGET_PICO)
 
-add_executable(pico-test ${CMAKE_CURRENT_LIST_DIR}/src/raspberry_pi.cpp ${CMAKE_CURRENT_LIST_DIR}/src/i2c-test.cpp)
+add_executable(pico-test
+    ${CMAKE_CURRENT_LIST_DIR}/src/raspberry_pi.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/pico-test.cpp)
 
 if (TARGET_PICO)
 
@@ -42,7 +45,7 @@ pico_add_extra_outputs(pico-test)
 pico_set_program_name(pico-test "pico-test")
 pico_set_program_version(pico-test "0.1")
 
-pico_enable_stdio_uart(pico-test 1)
+pico_enable_stdio_uart(pico-test 0)
 pico_enable_stdio_usb(pico-test 1)
 
 add_compile_definitions(TARGET_PICO)
@@ -63,7 +66,8 @@ if (TARGET_PICO)
 target_link_libraries(pico-test
     hardware_spi
     pico_stdlib
-    pico_stdio_usb)
+    pico_stdio_usb
+    hardware_pwm)
 
 else (TARGET_PICO)
 

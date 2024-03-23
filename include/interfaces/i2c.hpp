@@ -21,6 +21,8 @@ namespace nl::rakis::raspberrypi::interfaces
         I2C &operator=(I2C const &) = default;
         I2C &operator=(I2C &&) = default;
 
+        virtual std::ostream &log() = 0;
+        
     public:
         virtual ~I2C() = default;
 

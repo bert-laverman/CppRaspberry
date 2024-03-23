@@ -7,6 +7,7 @@
 
 #include <array>
 #include <functional>
+#include <iostream>
 
 namespace nl::rakis::raspberrypi::interfaces
 {
@@ -22,6 +23,8 @@ namespace nl::rakis::raspberrypi::interfaces
         SPI(SPI &&) = default;
         SPI &operator=(SPI const &) = default;
         SPI &operator=(SPI &&) = default;
+
+        virtual std::ostream &log() = 0;
 
     public:
         virtual ~SPI() = default;

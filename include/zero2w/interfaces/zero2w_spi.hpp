@@ -14,7 +14,7 @@
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
 
-#include "../../interfaces/spi.hpp"
+#include <interfaces/spi.hpp>
 
 namespace nl::rakis::raspberrypi::interfaces::zero2w
 {
@@ -33,6 +33,10 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w
         int fd_;
 
     protected:
+        virtual std::ostream &log() {
+            return std::cerr;
+        }
+
         void writeBlocking(std::function<std::array<uint8_t, 2>(unsigned)> const &value)
         {
             if (fd_ < 0) {
@@ -56,10 +60,10 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w
             }
 
             if (verbose()) {
-                std::cerr << "Writing ";
+                log() << "Writing ";
                 for (auto const &byte : tx_buf)
-                    std::cerr  << hex(byte >> 4) << hex(byte & 0x0f) << " ";
-                std::cerr << std::endl;
+                    log()  << hex(byte >> 4) << hex(byte & 0x0f) << " ";
+                log() << std::endl;
             }
             struct spi_ioc_transfer tr{
                 .tx_buf = (unsigned long)(tx_buf.data()),
