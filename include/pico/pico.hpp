@@ -3,45 +3,54 @@
 // Created: 2021-09-11 14:59:47
 // Purpose: General Pico management code
 
-#include <stdio.h>
+#include <iostream>
 
 #include "pico/stdlib.h"
 #include "pico/stdio.h"
-#include "hardware/spi.h"
 
 #include <raspberry_pi.hpp>
+
+#if defined(HAVE_I2C)
+#include "hardware/i2c.h"
+#include <pico/interfaces/pico_i2c.hpp>
+#endif
+
+#if defined(HAVE_SPI)
+#include "hardware/spi.h"
+
 #include <pico/interfaces/pico_spi.hpp>
+#endif
 
 namespace nl::rakis::raspberrypi {
 
-class PICO : public virtual RaspberryPi {
-    interfaces::PicoSPI spi0_;
+class PICO
+  : public virtual RaspberryPi<std::ostream
+#if defined(HAVE_I2C)
+    , interfaces::PicoI2C
+#endif
+#if defined(HAVE_SPI)
+    , interfaces::PicoSPI
+#endif
+  >
+{
 
 public:
-    PICO(bool verbose =false) : RaspberryPi(verbose), spi0_() {
-        if (verbose) {
-            stdio_init_all();
-
-            stdio_usb_init();
-            while ( !stdio_usb_connected() ) tight_loop_contents();
-            sleepMs(1000);
-            log() << "Starting up...\n" << std::flush;
-        }
+    PICO(bool verbose =false) : RaspberryPi(verbose)
+    {
     };
 
-    virtual interfaces::SPI& spi([[maybe_unused]] unsigned num = 0) {
-        return spi0_;
-    };
+    virtual ~PICO() =default;
 
-    virtual interfaces::I2C& i2c([[maybe_unused]] unsigned num = 0) {
-        throw std::runtime_error("I2C not implemented");
-    };
+    static PICO& instance(bool verbose =false) {
+        static PICO instance{ verbose };
+        return instance;
+    }
 
-    virtual std::ostream& log() {
+    virtual std::ostream& log() const override {
         return std::cout;
     };
     
-    virtual void sleepMs(unsigned ms) {
+    virtual void sleepMs(unsigned ms) const override {
         sleep_ms(ms);
     };
 };

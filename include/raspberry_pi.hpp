@@ -3,40 +3,77 @@
 // Created: 2021-09-11 14:59:47
 // Purpose: Provide an interface to the Raspberry Pi
 
+#include <vector>
 #include <iostream>
 
 #include <cstdint>
 
-#include <interfaces/spi.hpp>
-#include <interfaces/i2c.hpp>
+namespace nl::rakis::raspberrypi::interfaces {
+    class I2C;
+    class SPI;
+} // namespace nl::rakis::raspberrypi::interfaces
 
 namespace nl::rakis::raspberrypi {
 
+template <class Logger
+#if defined(HAVE_I2C)
+        , class I2CImpl
+#endif
+#if defined(HAVE_SPI)
+        , class SPIImpl
+#endif
+>
 class RaspberryPi {
-    static RaspberryPi* instance_;
+
+#if defined(HAVE_I2C)
+    std::vector<I2CImpl> i2c_;
+#endif
+#if defined(HAVE_SPI)
+    std::vector<SPIImpl> spi_;
+#endif
 
     bool verbose_{false};
 
 public:
     RaspberryPi() = default;
     virtual ~RaspberryPi() = default;
-    RaspberryPi(RaspberryPi const&) = delete;
+    RaspberryPi(RaspberryPi const&) = default;
     RaspberryPi(RaspberryPi&&) = default;
-    RaspberryPi& operator=(RaspberryPi const&) = delete;
+    RaspberryPi& operator=(RaspberryPi const&) = default;
     RaspberryPi& operator=(RaspberryPi&&) = default;
 
     RaspberryPi(bool verbose) : verbose_(verbose) {}
 
-    static RaspberryPi *instance(bool verbose = false);
+#if defined(HAVE_I2C)
+    inline I2CImpl& i2c(unsigned num = 0) { return i2c_[num]; }
+#endif
+#if defined(HAVE_SPI)
+    inline SPIImpl& spi(unsigned num = 0) { return spi_[num]; }
+#endif
 
-    virtual interfaces::SPI& spi(unsigned num = 0) = 0;
-    virtual interfaces::I2C& i2c(unsigned num = 0) = 0;
+    virtual std::ostream& log() const = 0;
 
-    virtual std::ostream& log() = 0;
     inline bool verbose() const { return verbose_; }
     inline void verbose(bool verbose) { verbose_ = verbose; }
 
-    virtual void sleepMs(unsigned ms) = 0;
+    virtual void sleepMs(unsigned ms) const = 0;
+
+#if defined(HAVE_I2C)
+    inline auto addInterface(I2CImpl const& i2c) {
+        auto num = i2c_.size();
+        i2c_.push_back(i2c);
+        return num;
+    }
+#endif
+
+#if defined(HAVE_SPI)
+    inline auto addInterface(SPIImpl const& spi) {
+        auto num = spi_.size();
+        spi_.push_back(spi);
+        return num;
+    }
+#endif
+
 };
 
 } // namespace nl::rakis::raspberrypi

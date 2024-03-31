@@ -35,7 +35,7 @@ public:
         return std::cerr;
     };
 
-    virtual void sleepMs(unsigned ms) {
+    virtual void sleepMs(unsigned ms) const override {
         std::this_thread::sleep_for(std::chrono::milliseconds(ms));
     };
 };

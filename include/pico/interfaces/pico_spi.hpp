@@ -38,8 +38,6 @@ namespace nl::rakis::raspberrypi::interfaces
         unsigned mosiPin_;
         unsigned misoPin_;
 
-        unsigned num_modules_{1}; // Number of devices daisy-chained
-
     public:
         PicoSPI(spi_inst_t *interface, unsigned csPin, unsigned sckPin, unsigned mosiPin, unsigned misoPin)
             : interface_(interface), csPin_(csPin), sckPin_(sckPin), mosiPin_(mosiPin), misoPin_(misoPin)
@@ -62,6 +60,11 @@ namespace nl::rakis::raspberrypi::interfaces
         {
         }
 
+        PicoSPI(const PicoSPI &) = default;
+        PicoSPI(PicoSPI &&) = default;
+        PicoSPI &operator=(const PicoSPI &) = default;
+        PicoSPI &operator=(PicoSPI &&) = default;
+
         virtual ~PicoSPI() = default;
 
     protected:
@@ -70,39 +73,13 @@ namespace nl::rakis::raspberrypi::interfaces
         }
 
     public:
-        virtual void select()
-        {
-            asm volatile("nop \n nop \n nop");
-            gpio_put(csPin_, 0);
-            asm volatile("nop \n nop \n nop");
-        }
+        virtual void select() override;
 
-        virtual void deselect()
-        {
-            asm volatile("nop \n nop \n nop");
-            gpio_put(csPin_, 1);
-            asm volatile("nop \n nop \n nop");
-        }
+        virtual void deselect() override;
 
-        virtual void writeAll(std::array<uint8_t, 2> const &value)
-        {
-            select();
-            for (unsigned module = 0; module < num_modules_; ++module)
-            {
-                spi_write_blocking(interface_, value.data(), 2);
-            }
-            deselect();
-        }
+        virtual void writeAll(std::array<uint8_t, 2> const &value) override;
 
-        virtual void writeAll(std::function<std::array<uint8_t, 2>(unsigned)> const &value)
-        {
-            select();
-            for (unsigned module = 0; module < num_modules_; ++module)
-            {
-                spi_write_blocking(interface_, value(module).data(), 2);
-            }
-            deselect();
-        }
+        virtual void writeAll(std::function<std::array<uint8_t, 2>(unsigned)> const &value) override;
     };
 
 } // namespace nl::rakis::raspberrypi::interfaces

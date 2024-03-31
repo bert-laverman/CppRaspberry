@@ -6,42 +6,49 @@
 #include <cstdint>
 
 #include <array>
+#include <memory>
 #include <functional>
 #include <iostream>
 
-namespace nl::rakis::raspberrypi::interfaces
+#include <raspberry_pi.hpp>
+#include <devices/spi_device.hpp>
+
+using nl::rakis::raspberrypi::RaspberryPi;
+using nl::rakis::raspberrypi::devices::SPIDevice;
+
+namespace nl::rakis::raspberrypi::interfaces {
+
+
+class SPI
 {
+    SPIDevice *device_{ nullptr };
+    unsigned numModules_{ 1 };
 
-    class SPI
-    {
-        unsigned num_modules_{1}; // Number of devices daisy-chained
-        bool verbose_{false};
+protected:
+    SPI() = default;
+    SPI(SPI const &) = default;
+    SPI(SPI &&) = default;
+    SPI &operator=(SPI const &) = default;
+    SPI &operator=(SPI &&) = default;
 
-    protected:
-        SPI() = default;
-        SPI(SPI const &) = default;
-        SPI(SPI &&) = default;
-        SPI &operator=(SPI const &) = default;
-        SPI &operator=(SPI &&) = default;
+    virtual std::ostream &log() = 0;
 
-        virtual std::ostream &log() = 0;
+public:
+    virtual ~SPI() = default;
 
-    public:
-        virtual ~SPI() = default;
+    inline SPIDevice *device() const { return device_; }
+    inline void device(SPIDevice *device) { device_ = device; }
 
-        inline unsigned numModules() const { return num_modules_; }
-        inline void numModules(unsigned num_modules) { num_modules_ = num_modules; }
+    inline unsigned numModules() const { return numModules_; }
+    void numModules(unsigned numModules);
 
-        inline bool verbose() const { return verbose_; }
-        inline void verbose(bool verbose) { verbose_ = verbose; }
+    virtual void select() =0;
 
-        virtual void select() =0;
+    virtual void deselect() =0;
 
-        virtual void deselect() =0;
+    virtual void writeAll(std::array<uint8_t, 2> const &value) =0;
 
-        virtual void writeAll(std::array<uint8_t, 2> const &value) =0;
-
-        virtual void writeAll(std::function<std::array<uint8_t, 2>(unsigned)> const &value) =0;
-    };
+    virtual void writeAll(std::function<std::array<uint8_t, 2>(unsigned)> const &value) =0;
+};
 
 } // namespace nl::rakis::raspberrypi::interfaces
