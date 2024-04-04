@@ -17,7 +17,7 @@ extern "C" {
 }
 #include <interfaces/i2c.hpp>
 
-namespace nl::rakis::raspberrypi::interfaces::zero2w {
+namespace nl::rakis::raspberrypi::interfaces {
 
     constexpr static const char *i2c1 = "/dev/i2c-1";
     constexpr static const char *i2c2 = "/dev/i2c-2";
@@ -28,10 +28,10 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
         uint8_t address_{0};
 
         inline static char hexHigh(uint8_t value) {
-            return char(value >> 4 < 10 ? '0' + (value >> 4) : 'a' + (value >> 4) - 10);
+            return char(((value >> 4) < 10) ? ('0' + (value >> 4)) : ('a' + (value >> 4) - 10));
         }
         inline static char hexLow(uint8_t value) {
-            return char(value & 0x0f < 10 ? '0' + (value & 0x0f) : 'a' + (value & 0x0f) - 10);
+            return char(((value & 0x0f) < 10) ? '0' + (value & 0x0f) : ('a' + (value & 0x0f) - 10));
         }
     protected:
         virtual std::ostream &log() {
@@ -92,7 +92,7 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             open();
             selectDevice(address);
 
-            log() << std::format("Writing to 0x" << hexHigh(address) << hexLow(address) << ", byte 0x" << hexHigh(cmd) << hexLow(cmd) << ".\n";
+            log() << "Writing to 0x" << hexHigh(address) << hexLow(address) << ", byte 0x" << hexHigh(cmd) << hexLow(cmd) << ".\n";
             i2c_smbus_write_byte(fd_, cmd);
         }
 
