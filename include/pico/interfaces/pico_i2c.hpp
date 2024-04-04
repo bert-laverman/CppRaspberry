@@ -38,13 +38,7 @@ namespace nl::rakis::raspberrypi::interfaces {
         PicoI2C(i2c_inst_t *interface, unsigned sdaPin, unsigned sclPin)
             : interface_(interface), sdaPin_(sdaPin), sclPin_(sclPin)
         {
-            log() << "Initialising I2C on pins " << sdaPin << " and " << sclPin << std::endl;
-            i2c_init(interface_, baudrate);
-
-            gpio_set_function(sdaPin_, GPIO_FUNC_I2C);
-            gpio_set_function(sclPin_, GPIO_FUNC_I2C);
-            gpio_pull_up(sdaPin_);
-            gpio_pull_up(sclPin_);
+            reset();
         }
 
         PicoI2C(unsigned sdaPin, unsigned sclPin) : PicoI2C(i2c0, sdaPin, sclPin)
@@ -54,18 +48,11 @@ namespace nl::rakis::raspberrypi::interfaces {
         {
         }
 
-        virtual void reset() override
-        {
-            i2c_init(interface_, baudrate);
-        }
+        virtual void reset() override;
 
-        virtual void switchToMaster() override
-        {
-            log() << "Switching to master mode\n";
-            reset();
-        }
+        virtual void switchToControllerMode() override;
 
-        virtual void switchToSlave(uint8_t address, SlaveCallback cb) override;
+        virtual void switchToResponderMode(uint8_t address, MsgCallback cb) override;
 
         virtual void writeByte(uint8_t address, uint8_t value) override
         {

@@ -5,22 +5,38 @@
 
 #include <cstdint>
 
+#include <iostream>
 #include <functional>
 #include <vector>
 #include <span>
 
 
+namespace nl::rakis::raspberrypi::protocols {
+
+    /**
+     * @brief Message header
+     */
+    struct MsgHeader {
+        uint8_t command;
+        uint8_t length;
+        uint8_t sender;
+        uint8_t checksum;
+    };
+    inline constexpr unsigned MsgHeaderSize = sizeof(MsgHeader);
+
+}
+
 namespace nl::rakis::raspberrypi::interfaces
 {
 
-    using SlaveCallback = std::function<void(uint8_t address, const std::vector<uint8_t>& data)>;
+    using MsgCallback = std::function<void(uint8_t command, uint8_t sender, const std::vector<uint8_t>& data)>;
 
     class I2C {
         bool verbose_{false};
         bool master_{true};
 
         uint8_t address_{0};
-        SlaveCallback callback_;
+        MsgCallback callback_;
 
     protected:
         I2C() = default;
@@ -37,18 +53,18 @@ namespace nl::rakis::raspberrypi::interfaces
         inline bool verbose() const { return verbose_; }
         inline void verbose(bool verbose) { verbose_ = verbose; }
 
-        inline bool master() const { return master_; }
-        inline void master(bool master) { master_ = master; }
-        inline bool slave() const { return !master_; }
+        inline bool controller() const { return master_; }
+        inline void controller(bool master) { master_ = master; }
+        inline bool responder() const { return !master_; }
 
-        inline uint8_t slaveAddress() const { return address_; }
-        inline void slaveAddress(uint8_t address) { address_ = address; }
-        inline SlaveCallback callback() { return callback_; }
-        inline void callback(SlaveCallback callback) { callback_ = callback; }
+        inline uint8_t listenAddress() const { return address_; }
+        inline void listenAddress(uint8_t address) { address_ = address; }
+        inline MsgCallback callback() { return callback_; }
+        inline void callback(MsgCallback callback) { callback_ = callback; }
 
         virtual void reset() =0;
-        virtual void switchToMaster() =0;
-        virtual void switchToSlave(uint8_t address, SlaveCallback callback) =0;
+        virtual void switchToControllerMode() =0;
+        virtual void switchToResponderMode(uint8_t address, MsgCallback callback) =0;
 
         virtual void writeByte(uint8_t address, uint8_t value) =0;
         virtual void writeBytes(uint8_t address, std::span<uint8_t> data) =0;

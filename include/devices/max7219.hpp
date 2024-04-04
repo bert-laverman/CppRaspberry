@@ -305,7 +305,7 @@ public:
      * @param module The module number of the MAX7219 device.
      * @param value The number to be displayed.
      */
-    inline void setNumber(unsigned module, unsigned value) {
+    inline void setNumber(unsigned module, uint32_t value) {
         buffer_[module].buffer.fill(0);
 
         for (unsigned pos = 0; (pos < 8); ++pos, value /= 10) {
