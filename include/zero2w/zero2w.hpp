@@ -8,28 +8,31 @@
 #include <thread>
 
 #include <raspberry_pi.hpp>
-#include <zero2w/interfaces/zero2w_spi.hpp>
+
+#if defined(HAVE_I2C)
 #include <zero2w/interfaces/zero2w_i2c.hpp>
+#endif
+#if defined(HAVE_SPI)
+#include <zero2w/interfaces/zero2w_spi.hpp>
+#endif
 
 
 namespace nl::rakis::raspberrypi {
 
-class Zero2W : public virtual RaspberryPi {
-    interfaces::zero2w::Zero2WSPI spi0_;
-    interfaces::zero2w::Zero2WI2C i2c0_;
-
+class Zero2W
+    : public virtual RaspberryPi<std::ostream
+#if defined(HAVE_I2C)
+    , interfaces::zero2w::Zero2WI2C
+#endif
+#if defined(HAVE_SPI)
+    , interfaces::zero2w::Zero2WSPI
+#endif
+    >
+{
 public:
-    Zero2W(bool verbose =false) : RaspberryPi(verbose), spi0_(),i2c0_() {
-        spi0_.verbose(verbose);
-        i2c0_.verbose(verbose);
-    };
+    Zero2W(bool verbose =false) : RaspberryPi(verbose) {};
 
-    virtual interfaces::SPI& spi([[maybe_unused]] unsigned num = 0) {
-        return spi0_;
-    };
-    virtual interfaces::I2C& i2c([[maybe_unused]] unsigned num = 0) {
-        return i2c0_;
-    };
+    virtual ~Zero2W() =default;
 
     virtual std::ostream& log() {
         return std::cerr;
