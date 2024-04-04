@@ -27,10 +27,10 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
         int fd_;
         uint8_t address_{0};
 
-        consteval inline static char hexHigh(uint8_t value) {
+        inline static char hexHigh(uint8_t value) {
             return char(value >> 4 < 10 ? '0' + (value >> 4) : 'a' + (value >> 4) - 10);
         }
-        consteval inline static char hexLow(uint8_t value) {
+        inline static char hexLow(uint8_t value) {
             return char(value & 0x0f < 10 ? '0' + (value & 0x0f) : 'a' + (value & 0x0f) - 10);
         }
     protected:
