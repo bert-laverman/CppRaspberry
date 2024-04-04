@@ -45,7 +45,7 @@ elseif(TARGET_ZERO2W)
     message(STATUS "Building for the Raspberry Pi Zero 2W")
     add_compile_definitions(TARGET_ZERO2W)
 
-    set(CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES} src/zero2w.cpp)
+    set(CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES} ${CMAKE_CURRENT_LIST_DIR}/src/zero2w.cpp)
 
     if(HAVE_I2C)
         message(STATUS "ZERO2W_I2C is enabled")
