@@ -4,6 +4,7 @@
 // Purpose: Provide an interface to the I2C bus on the Raspberry Pi Zero 2 W
 
 #include <string>
+#include <format>
 #include <iostream>
 
 #include <fcntl.h>
@@ -40,12 +41,12 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             }
 
             if (verbose()) {
-                log() << "Opening " << interface_ << std::endl;
+                log() << std::format("Opening '{}'\n", interface_);
             }
             fd_ = ::open(interface_.c_str(), O_RDWR);
             if (fd_ < 0) {
                 if (verbose()) {
-                    log() << "Failed to open " << interface_ << ". Errno=" << errno << std::endl;
+                    log() << std::format("Failed to open '{}'. Errno={}.\n", interface_, errno);
                 }
                 return false;
             }
@@ -64,11 +65,11 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
                 return true;
             }
             if (verbose()) {
-                log() << "Select device at 0x" << hex(address >> 4) << hex(address & 0x0f) << " for transfer." << std::endl;
+                log() << std::format("Select device at 0x{:02x} for transfer.\n", address);
             }
             if (::ioctl(fd_, I2C_SLAVE, address) < 0) {
                 if (verbose()) {
-                    log() << "Failed to select device at 0x" << hex(address >> 4) << hex(address & 0x0f) << " for transfer. Errno=" << errno << std::endl;
+                    log() << std::format("Failed to select device at 0x{:02x} for transfer. Errno={}.\n", address, errno);
                 }
                 return false;
             }
@@ -86,7 +87,7 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             open();
             selectDevice(address);
 
-            log() << "Writing to 0x" << hex(address >> 4) << hex(address & 0x0f) << ", byte 0x" << hex(cmd >> 4) << hex(cmd & 0x0f) << std::endl;
+            log() << std::format("Writing to 0x{:02x}, byte 0x{:02x}.\n", address, cmd);
             i2c_smbus_write_byte(fd_, cmd);
         }
 
@@ -94,7 +95,7 @@ namespace nl::rakis::raspberrypi::interfaces::zero2w {
             open();
             selectDevice(address);
 
-            log() << "Writing to 0x" << hex(address >> 4) << hex(address & 0x0f) << ", byte 0x" << hex(cmd >> 4) << hex(cmd & 0x0f) << " with data 0x" << hex(data >> 4) << hex(data & 0x0f);
+            log() << std::format("Writing to 0x{:02x}, byte 0x{:02x} with data 0x{:02x}.\n", address, cmd, data);
         }
 
     };
