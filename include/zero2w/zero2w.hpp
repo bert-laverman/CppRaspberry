@@ -34,6 +34,11 @@ public:
 
     virtual ~Zero2W() =default;
 
+    static Zero2W& instance(bool verbose =false) {
+        static Zero2W instance{ verbose };
+        return instance;
+    }
+
     virtual std::ostream& log() {
         return std::cerr;
     };

@@ -14,18 +14,46 @@ using nl::rakis::raspberrypi::protocols::MsgHeader;
 using namespace nl::rakis::raspberrypi::interfaces;
 
 
-void PicoI2C::reset()
+PicoI2C::PicoI2C(i2c_inst_t *interface, unsigned sdaPin, unsigned sclPin)
+    : I2C(sdaPin, sclPin), interface_(interface)
 {
-    irq_set_enabled(I2C0_IRQ, false);
-    i2c_deinit(interface_);
+}
 
-    printf("Initialising I2C on pins %d and %d\n", sdaPin_, sclPin_);
-    i2c_init(interface_, baudrate);
+PicoI2C &PicoI2C::defaultInstance()
+{
+    static PicoI2C instance{i2c0, PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN};
+    return instance;
+}
 
-    gpio_set_function(sdaPin_, GPIO_FUNC_I2C);
-    gpio_set_function(sclPin_, GPIO_FUNC_I2C);
-    gpio_pull_up(sdaPin_);
-    gpio_pull_up(sclPin_);
+void PicoI2C::open()
+{
+    if (!initialized()) {
+        printf("Initialising I2C on pins %d and %d\n", sdaPin(), sclPin());
+        i2c_init(interface_, baudrate);
+
+        gpio_set_function(sdaPin(), GPIO_FUNC_I2C);
+        gpio_set_function(sclPin(), GPIO_FUNC_I2C);
+        gpio_pull_up(sdaPin());
+        gpio_pull_up(sclPin());
+
+        initialized(true);
+    }
+}
+
+void PicoI2C::close()
+{
+    if (initialized()) {
+        if (interface_ == i2c0) {
+            printf("Disabling I2C0 interrupts\n");
+            irq_set_enabled(I2C0_IRQ, false);
+        } else if (interface_ == i2c1) {
+            printf("Disabling I2C1 interrupts\n");
+            irq_set_enabled(I2C1_IRQ, false);
+        }
+        printf("Deinitialising I2C%d\n", i2c_hw_index(interface_));
+        i2c_deinit(interface_);
+        initialized(false);
+    }
 }
 
 

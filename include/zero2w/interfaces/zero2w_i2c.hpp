@@ -33,6 +33,7 @@ namespace nl::rakis::raspberrypi::interfaces {
         inline static char hexLow(uint8_t value) {
             return char(((value & 0x0f) < 10) ? '0' + (value & 0x0f) : ('a' + (value & 0x0f) - 10));
         }
+
     protected:
         virtual std::ostream &log() {
             return std::cerr;
@@ -83,10 +84,9 @@ namespace nl::rakis::raspberrypi::interfaces {
 
     public:
         Zero2WI2C() : interface_(i2c1), fd_(-1) {}
+        Zero2WI2C(const char *interface) : interface_(interface), fd_(-1) {}
 
-        virtual ~Zero2WI2C() {
-            close();
-        }
+        virtual ~Zero2WI2C();
 
         virtual void writeByte(uint8_t address, uint8_t cmd) override {
             open();

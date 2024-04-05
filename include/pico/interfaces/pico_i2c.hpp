@@ -13,14 +13,11 @@
 
 namespace nl::rakis::raspberrypi::interfaces {
 
-    class PicoI2C : public virtual I2C
+    class PicoI2C : public I2C
     {
         constexpr static const uint baudrate = 100000;
 
-        i2c_inst_t *interface_;
-
-        unsigned sdaPin_;
-        unsigned sclPin_;
+        i2c_inst_t *interface_{ nullptr };
 
         inline uint8_t readByteRaw() {
             return i2c_read_byte_raw(interface_);
@@ -35,20 +32,25 @@ namespace nl::rakis::raspberrypi::interfaces {
         }
 
     public:
-        PicoI2C(i2c_inst_t *interface, unsigned sdaPin, unsigned sclPin)
-            : interface_(interface), sdaPin_(sdaPin), sclPin_(sclPin)
-        {
-            reset();
-        }
+        PicoI2C() = default;
+
+        PicoI2C(i2c_inst_t *interface, unsigned sdaPin, unsigned sclPin);
 
         PicoI2C(unsigned sdaPin, unsigned sclPin) : PicoI2C(i2c0, sdaPin, sclPin)
         {
         }
-        PicoI2C() : PicoI2C(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN)
-        {
-        }
 
-        virtual void reset() override;
+        PicoI2C(const PicoI2C &) = default;
+        PicoI2C(PicoI2C &&) = default;
+        PicoI2C &operator=(const PicoI2C &) = default;
+        PicoI2C &operator=(PicoI2C &&) = default;
+        ~PicoI2C() = default;
+
+
+        static PicoI2C &defaultInstance();
+
+        virtual void open() override;
+        virtual void close() override;
 
         virtual void switchToControllerMode() override;
 

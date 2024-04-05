@@ -51,6 +51,7 @@ elseif(TARGET_ZERO2W)
         message(STATUS "ZERO2W_I2C is enabled")
         add_compile_definitions(HAVE_I2C)
 
+        set(CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES} ${CMAKE_CURRENT_LIST_DIR}/src/interfaces/zero2w_i2c.cpp)
         set(CPP_RASPBERRY_LIBS ${CPP_RASPBERRY_LIBS} i2c)
     endif(HAVE_I2C)
 
