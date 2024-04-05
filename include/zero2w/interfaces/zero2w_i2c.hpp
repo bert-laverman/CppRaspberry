@@ -40,32 +40,6 @@ namespace nl::rakis::raspberrypi::interfaces {
         }
 
     private:
-        bool open()
-        {
-            if (fd_ >= 0) {
-                return true;
-            }
-
-            if (verbose()) {
-                log() << "Opening '" << interface_ << "'\n";
-            }
-            fd_ = ::open(interface_.c_str(), O_RDWR);
-            if (fd_ < 0) {
-                if (verbose()) {
-                    log() << "Failed to open '" << interface_ << "'. Errno=" << errno << ".\n";
-                }
-                return false;
-            }
-            return true;
-        }
-
-        void close() {
-            if (fd_ >= 0) {
-                ::close(fd_);
-                fd_ = -1;
-            }
-        }
-
         bool selectDevice(uint8_t address) {
             if (address_ == address) {
                 return true;
@@ -87,6 +61,13 @@ namespace nl::rakis::raspberrypi::interfaces {
         Zero2WI2C(const char *interface) : interface_(interface), fd_(-1) {}
 
         virtual ~Zero2WI2C();
+
+        virtual void open() override;
+        virtual void close() override;
+
+        virtual void switchToControllerMode() override;
+
+        virtual void switchToResponderMode(uint8_t address, MsgCallback cb) override;
 
         virtual void writeByte(uint8_t address, uint8_t cmd) override {
             open();

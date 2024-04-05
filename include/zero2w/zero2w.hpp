@@ -39,13 +39,14 @@ public:
         return instance;
     }
 
-    virtual std::ostream& log() {
+    virtual std::ostream& log() const override {
         return std::cerr;
     };
 
     virtual void sleepMs(unsigned ms) const override {
         std::this_thread::sleep_for(std::chrono::milliseconds(ms));
     };
+
 };
 
 } // namespace nl::rakis::raspberrypi
