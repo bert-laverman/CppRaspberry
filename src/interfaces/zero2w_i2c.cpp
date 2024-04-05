@@ -85,7 +85,7 @@ void Zero2WI2C::writeBytes(uint8_t address, std::span<uint8_t> data)
 {
     open();
 
-    struct i2c_msg msg{ address, 0, data.size(), data.data() };
+    struct i2c_msg msg{ address, 0, static_cast<__u16>(data.size()), data.data() };
     struct i2c_rdwr_ioctl_data msgs{ &msg, 1 };
 
     auto result = ioctl(fd_, I2C_RDWR, &msgs);
