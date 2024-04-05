@@ -5,16 +5,3 @@
 
 using namespace nl::rakis::raspberrypi;
 
-
-#if defined(HAVE_SPI)
-
-void interfaces::SPI::numModules(unsigned numModules)
-{
-    numModules_ = numModules;
-    if (device_ != nullptr)
-    {
-        device_->numModulesChanged(numModules);
-    }
-}
-
-#endif
