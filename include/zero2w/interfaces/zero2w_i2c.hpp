@@ -34,23 +34,6 @@ namespace nl::rakis::raspberrypi::interfaces {
             return std::cerr;
         }
 
-    private:
-        bool selectDevice(uint8_t address) {
-            if (address_ == address) {
-                return true;
-            }
-            if (verbose()) {
-                log() << "Select device at 0x" << hexHigh(address) << hexLow(address) << " for transfer.\n";
-            }
-            if (::ioctl(fd_, I2C_SLAVE, address) < 0) {
-                if (verbose()) {
-                    log() << "Failed to select device at 0x" << hexHigh(address) << hexLow(address) << " for transfer. Errno=" << errno << ".\n";
-                }
-                return false;
-            }
-            return true;
-        }
-
     public:
         Zero2WI2C() : interface_(i2c1), fd_(-1) {}
         Zero2WI2C(const char *interface) : interface_(interface), fd_(-1) {}

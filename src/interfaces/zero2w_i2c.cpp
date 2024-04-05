@@ -91,11 +91,7 @@ void Zero2WI2C::switchToResponderMode(uint8_t address, MsgCallback cb)
 }
 
 void Zero2WI2C::writeByte(uint8_t address, uint8_t cmd) {
-    open();
-    selectDevice(address);
-
-    log() << "Writing to 0x" << hexHigh(address) << hexLow(address) << ", byte 0x" << hexHigh(cmd) << hexLow(cmd) << ".\n";
-    i2c_smbus_write_byte(fd_, cmd);
+    log() << "Ignoring unimplemented writeByte() to 0x" << hexHigh(address) << hexLow(address) << ".\n";
 }
 
 void Zero2WI2C::writeBytes(uint8_t address, std::span<uint8_t> data)
@@ -112,10 +108,5 @@ void Zero2WI2C::writeBytes(uint8_t address, std::span<uint8_t> data)
 }
 
 void Zero2WI2C::writeByteData(uint8_t address, uint8_t cmd, uint8_t data) {
-    open();
-    selectDevice(address);
-
-    log() << "Writing to 0x" << hexHigh(address) << hexLow(address)
-            << ", byte 0x" << hexHigh(cmd) << hexLow(cmd)
-            << " with data 0x" << hexHigh(data) << hexLow(data) << ".\n";
+    log() << "Ignoring unimplemented writeByteData() to 0x" << hexHigh(address) << hexLow(address) << ".\n";
 }
