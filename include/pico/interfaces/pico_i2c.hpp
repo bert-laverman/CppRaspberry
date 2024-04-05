@@ -56,20 +56,9 @@ namespace nl::rakis::raspberrypi::interfaces {
 
         virtual void switchToResponderMode(uint8_t address, MsgCallback cb) override;
 
-        virtual void writeByte(uint8_t address, uint8_t value) override
-        {
-            i2c_write_blocking(interface_, address, &value, 1, false);
-        }
-
         virtual void writeBytes(uint8_t address, std::span<uint8_t> data) override
         {
             i2c_write_blocking(interface_, address, data.data(), data.size(), false);
-        }
-
-        virtual void writeByteData(uint8_t address, uint8_t value, uint8_t data) override
-        {
-            uint8_t buffer[2] = {value, data};
-            i2c_write_blocking(interface_, address, buffer, 2, false);
         }
     };
 }

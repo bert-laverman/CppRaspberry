@@ -15,17 +15,6 @@ using nl::rakis::raspberrypi::protocols::MsgHeader;
 using namespace nl::rakis::raspberrypi::interfaces;
 
 
-Zero2WI2C::Zero2WI2C(const char *interface)
-    : I2C(verbose)
-    , interface_{interface}
-    , address_{address}
-{
-    if (verbose) {
-        log() << "Zero2WI2C::Zero2WI2C(" << interface << ", " << int(address) << ")\n";
-    }
-}
-
-
 Zero2WI2C::~Zero2WI2C()
 {
     close();
@@ -83,15 +72,13 @@ void Zero2WI2C::switchToResponderMode(uint8_t address, MsgCallback cb)
         if (verbose()) {
             log() << "Failed to switch to Responder mode. Errno=" << errno << ".\n";
         }
-        return false;
+        close();
+
+        return;
     }
     listenAddress(address);
     callback(cb);
     controller(false);
-}
-
-void Zero2WI2C::writeByte(uint8_t address, uint8_t cmd) {
-    log() << "Ignoring unimplemented writeByte() to 0x" << hexHigh(address) << hexLow(address) << ".\n";
 }
 
 void Zero2WI2C::writeBytes(uint8_t address, std::span<uint8_t> data)
@@ -99,14 +86,10 @@ void Zero2WI2C::writeBytes(uint8_t address, std::span<uint8_t> data)
     open();
 
     struct i2c_msg msg{ address, 0, data.size(), data.data() };
-    struct i2c_rdwr_ioctl_data data{ &msg, 1 };
+    struct i2c_rdwr_ioctl_data msgs{ &msg, 1 };
 
-    auto result = ioctl(fd_, I2C_RDWR, &data);
+    auto result = ioctl(fd_, I2C_RDWR, &msgs);
     if (result != 1) {
         log() << "Failed to write " << data.size() << " bytes to 0x" << hexHigh(address) << hexLow(address) << ". Errno=" << errno << ".\n";
     }
-}
-
-void Zero2WI2C::writeByteData(uint8_t address, uint8_t cmd, uint8_t data) {
-    log() << "Ignoring unimplemented writeByteData() to 0x" << hexHigh(address) << hexLow(address) << ".\n";
 }

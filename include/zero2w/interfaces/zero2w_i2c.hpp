@@ -47,10 +47,7 @@ namespace nl::rakis::raspberrypi::interfaces {
 
         virtual void switchToResponderMode(uint8_t address, MsgCallback cb) override;
 
-        virtual void writeByte(uint8_t address, uint8_t cmd) override;
         virtual void writeBytes(uint8_t address, std::span<uint8_t> data) override;
-        virtual void writeByteData(uint8_t address, uint8_t cmd, uint8_t data) override;
-
     };
 
 } // namespace nl::rakis::raspberrypi::interfaces::zero2w

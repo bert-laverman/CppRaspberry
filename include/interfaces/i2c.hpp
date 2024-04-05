@@ -118,9 +118,6 @@ namespace nl::rakis::raspberrypi::interfaces
         virtual void switchToControllerMode() =0;
         virtual void switchToResponderMode(uint8_t address, MsgCallback callback) =0;
 
-        virtual void writeByte(uint8_t address, uint8_t value) =0;
         virtual void writeBytes(uint8_t address, std::span<uint8_t> data) =0;
-
-        virtual void writeByteData(uint8_t address, uint8_t value, uint8_t data) =0;
     };
 }
