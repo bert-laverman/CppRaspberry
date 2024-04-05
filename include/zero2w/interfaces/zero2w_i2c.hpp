@@ -10,11 +10,6 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 
-extern "C" {
-#include <i2c/smbus.h>
-#include <linux/i2c.h>
-#include <linux/i2c-dev.h>
-}
 #include <interfaces/i2c.hpp>
 
 namespace nl::rakis::raspberrypi::interfaces {
@@ -69,22 +64,9 @@ namespace nl::rakis::raspberrypi::interfaces {
 
         virtual void switchToResponderMode(uint8_t address, MsgCallback cb) override;
 
-        virtual void writeByte(uint8_t address, uint8_t cmd) override {
-            open();
-            selectDevice(address);
-
-            log() << "Writing to 0x" << hexHigh(address) << hexLow(address) << ", byte 0x" << hexHigh(cmd) << hexLow(cmd) << ".\n";
-            i2c_smbus_write_byte(fd_, cmd);
-        }
-
-        virtual void writeByteData(uint8_t address, uint8_t cmd, uint8_t data) override {
-            open();
-            selectDevice(address);
-
-            log() << "Writing to 0x" << hexHigh(address) << hexLow(address)
-                  << ", byte 0x" << hexHigh(cmd) << hexLow(cmd)
-                  << " with data 0x" << hexHigh(data) << hexLow(data) << ".\n";
-        }
+        virtual void writeByte(uint8_t address, uint8_t cmd) override;
+        virtual void writeBytes(uint8_t address, std::span<uint8_t> data) override;
+        virtual void writeByteData(uint8_t address, uint8_t cmd, uint8_t data) override;
 
     };
 
