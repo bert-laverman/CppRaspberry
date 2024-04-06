@@ -21,12 +21,14 @@ enum class Commands : uint8_t {
 
 inline constexpr uint64_t ControllerId = 0x0000000000000000;
 
+inline constexpr unsigned idSize = sizeof(uint64_t);
+
 /**
  * @brief Board identifier
  */
 union BoardId {
     uint64_t id;
-    uint8_t bytes[8];
+    uint8_t bytes[idSize];
 };
 
 /**

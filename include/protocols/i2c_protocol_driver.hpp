@@ -2,10 +2,12 @@
 // Copyright 2024 by Bert Laverman, All rights reserved.
 // Created: 2021-09-11 14:59:47
 
+#include <cstring>
 #include <cstdint>
 
-#include <interfaces/i2c.hpp>
+#include <vector>
 
+#include <interfaces/i2c.hpp>
 #include <protocols/i2c_protocol.hpp>
 
 
@@ -15,7 +17,10 @@ template <typename I2CImpl>
 class I2CProtocolDriver {
     I2CImpl& i2c_;
 
-    void messageReceived(uint8_t address, std::vector<uint8_t> const& data);
+    void messageReceived(uint8_t address, std::vector<uint8_t> const& data) 
+    {
+        i2c_.log() << "Not implemented.\n";
+    }
 
 public:
     I2CProtocolDriver(I2CImpl& i2c) : i2c_(i2c) {};
@@ -35,7 +40,45 @@ public:
         i2c_.switchToSlave(address, std::bind(&I2CProtocolDriver::messageReceived, this, std::placeholders::_1, std::placeholders::_2));
     }
 
-    void sendHello(uint64_t boardId);
+    uint8_t computeChecksum(std::span<uint8_t> data) {
+        uint8_t checksum = 0;
+        for (auto byte : data) {
+            checksum ^= byte;
+        }
+        return checksum;
+    }
+
+    void sendHello(uint8_t address, uint64_t boardId)
+    {
+        MsgHello hello{ boardId };
+        std::vector<uint8_t> data(MsgHeaderSize + sizeof(MsgHello));
+        MsgHeader header{ static_cast<uint8_t>(Commands::Hello), sizeof(MsgHello), i2c_.address(), 0 };
+        std::memcpy(data.data(), &header, MsgHeaderSize);
+        std::memcpy(data.data() + MsgHeaderSize, &hello, sizeof(MsgHello));
+
+        i2c_.writeBytes(address, data);
+    }
+
+    inline void sendHello(uint64_t boardId)
+    {
+        sendHello(0, boardId);
+    }
+
+    void sendHello(uint8_t address, uint8_t id[protocols::idSize])
+    {
+        std::vector<uint8_t> data(MsgHeaderSize + protocols::idSize);
+        MsgHeader header{ static_cast<uint8_t>(Commands::Hello), protocols::idSize, i2c_.listenAddress(), computeChecksum(std::span(&id[0], protocols::idSize)) };
+        std::memcpy(data.data(), &header, MsgHeaderSize);
+        std::memcpy(data.data() + MsgHeaderSize, &id[0], protocols::idSize);
+
+        i2c_.writeBytes(address, data);
+    }
+
+    inline void sendHello(uint8_t id[protocols::idSize])
+    {
+        sendHello(0, id);
+    }
+
     void sendSetAddress(uint64_t boardId, uint8_t address);
 };
 

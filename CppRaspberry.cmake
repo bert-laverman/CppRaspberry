@@ -21,7 +21,10 @@ if(TARGET_PICO)
         message(STATUS "HAVE_I2C is enabled")
         add_compile_definitions(HAVE_I2C)
 
-        set(CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES} ${CMAKE_CURRENT_LIST_DIR}/src/interfaces/pico_i2c.cpp ${CMAKE_CURRENT_LIST_DIR}/src/devices/lcd2x16.cpp)
+        set(CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES}
+            ${CMAKE_CURRENT_LIST_DIR}/src/interfaces/pico_i2c.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/src/protocols/i2c_protocol_driver.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/src/devices/lcd2x16.cpp)
         set(CPP_RASPBERRY_LIBS ${CPP_RASPBERRY_LIBS} hardware_i2c)
     endif(HAVE_I2C)
 
@@ -51,7 +54,9 @@ elseif(TARGET_ZERO2W)
         message(STATUS "ZERO2W_I2C is enabled")
         add_compile_definitions(HAVE_I2C)
 
-        set(CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES} ${CMAKE_CURRENT_LIST_DIR}/src/interfaces/zero2w_i2c.cpp)
+        set(CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES}
+            ${CMAKE_CURRENT_LIST_DIR}/src/interfaces/zero2w_i2c.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/src/protocols/i2c_protocol_driver.cpp)
         set(CPP_RASPBERRY_LIBS ${CPP_RASPBERRY_LIBS} i2c)
     endif(HAVE_I2C)
 

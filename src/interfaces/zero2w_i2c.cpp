@@ -2,6 +2,11 @@
 // Created: 2024-05-04
 
 
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
+
 extern "C" {
 #include <i2c/smbus.h>
 #include <linux/i2c.h>
@@ -29,7 +34,7 @@ void Zero2WI2C::open()
     if (verbose()) {
         log() << "Opening '" << interface_ << "'\n";
     }
-    fd_ = ::open(interface_.c_str(), O_RDWR);
+    fd_ = ::open(interface_.c_str(), O_RDWR | O_NONBLOCK);
     if (fd_ < 0) {
         if (verbose()) {
             log() << "Failed to open '" << interface_ << "'. Errno=" << errno << ".\n";
@@ -50,6 +55,85 @@ void Zero2WI2C::close() {
     }
 }
 
+bool Zero2WI2C::readOneByte(uint8_t &value)
+{
+    open();
+
+    auto result = ::read(fd_, &value, 1);
+    if (result == 1) {
+        return true;
+    }
+    if ((result < 0) && (errno != EAGAIN)) {
+        log() << "Failed to read. Errno=" << errno << ".\n";
+        return false;
+    }
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(fd_, &fds);
+    struct timeval tv{ 0, 100000 }; // 100ms
+    result = select(fd_ + 1, &fds, nullptr, nullptr, &tv);
+
+    if (result < 0) {
+        log() << "Select failed. Errno=" << errno << ".\n";
+        return false;
+    }
+    if (result == 0) {
+        return false; // Timeout, no error, just no data
+    }
+    result = ::read(fd_, &value, 1);
+    if (result == 1) {
+        return true;
+    }
+    if (result < 0) {
+        log() << "Failed to read. Errno=" << errno << ".\n";
+    }
+    log() << "Select said there was data, but read failed.\n";
+    return false;
+}
+
+bool Zero2WI2C::readMessage(MsgHeader &header, std::vector<uint8_t> &data)
+{
+    open();
+
+    if (!readOneByte(header.length) || !readOneByte(header.sender) || !readOneByte(header.checksum)) {
+        return false;
+    }
+
+    data.resize(header.length);
+    ssize_t totalBytesRead = 0;
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 100; // wait max 100 usecs per byte
+
+    while (totalBytesRead < header.length) {
+        fd_set read_fds;
+        FD_ZERO(&read_fds);
+        FD_SET(fd_, &read_fds);
+
+        int selectResult = select(fd_ + 1, &read_fds, NULL, NULL, &timeout);
+        if (selectResult == -1) {
+            log() << "Select error. Errno=" << errno << ".\n";
+            return false;
+        } else if (selectResult == 0) {
+            log() << "Read timeout.\n";
+            return false;
+        }
+
+        ssize_t result = ::read(fd_, data.data() + totalBytesRead, header.length - totalBytesRead);
+        if (result < 0) {
+            log() << "Failed to read. Errno=" << errno << ".\n";
+            return false;
+        }
+
+        totalBytesRead += result;
+    }
+
+    if (totalBytesRead != header.length) {
+        log() << "Failed to read " << header.length << " bytes. Errno=" << errno << ".\n";
+        return false;
+    }
+    return true;
+}
 
 void Zero2WI2C::switchToControllerMode()
 {
@@ -81,7 +165,7 @@ void Zero2WI2C::switchToResponderMode(uint8_t address, MsgCallback cb)
     controller(false);
 }
 
-void Zero2WI2C::writeBytes(uint8_t address, std::span<uint8_t> data)
+bool Zero2WI2C::writeBytes(uint8_t address, std::span<uint8_t> data)
 {
     open();
 
@@ -91,5 +175,7 @@ void Zero2WI2C::writeBytes(uint8_t address, std::span<uint8_t> data)
     auto result = ioctl(fd_, I2C_RDWR, &msgs);
     if (result != 1) {
         log() << "Failed to write " << data.size() << " bytes to 0x" << hexHigh(address) << hexLow(address) << ". Errno=" << errno << ".\n";
+        return false;
     }
+    return true;
 }

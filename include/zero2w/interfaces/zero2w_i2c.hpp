@@ -6,10 +6,6 @@
 #include <string>
 #include <iostream>
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-
 #include <interfaces/i2c.hpp>
 
 namespace nl::rakis::raspberrypi::interfaces {
@@ -19,8 +15,9 @@ namespace nl::rakis::raspberrypi::interfaces {
 
     class Zero2WI2C : public virtual I2C {
         std::string interface_;
-        int fd_;
-        uint8_t address_{0};
+        int fd_{ -1 };
+        uint8_t address_{ 0 };
+
 
         inline static char hexHigh(uint8_t value) {
             return char(((value >> 4) < 10) ? ('0' + (value >> 4)) : ('a' + (value >> 4) - 10));
@@ -34,9 +31,12 @@ namespace nl::rakis::raspberrypi::interfaces {
             return std::cerr;
         }
 
+        bool readOneByte(uint8_t &value);
+        bool readMessage(protocols::MsgHeader &header, std::vector<uint8_t> &data);
+
     public:
-        Zero2WI2C() : interface_(i2c1), fd_(-1) {}
-        Zero2WI2C(const char *interface) : interface_(interface), fd_(-1) {}
+        Zero2WI2C() : interface_(i2c1) {}
+        Zero2WI2C(const char *interface) : interface_(interface) {}
 
         virtual ~Zero2WI2C();
 
@@ -47,7 +47,7 @@ namespace nl::rakis::raspberrypi::interfaces {
 
         virtual void switchToResponderMode(uint8_t address, MsgCallback cb) override;
 
-        virtual void writeBytes(uint8_t address, std::span<uint8_t> data) override;
+        virtual bool writeBytes(uint8_t address, std::span<uint8_t> data) override;
     };
 
 } // namespace nl::rakis::raspberrypi::interfaces::zero2w
