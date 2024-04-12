@@ -17,6 +17,7 @@ extern "C" {
 
 
 using nl::rakis::raspberrypi::protocols::MsgHeader;
+using nl::rakis::raspberrypi::protocols::MsgHeaderSize;
 using namespace nl::rakis::raspberrypi::interfaces;
 
 
@@ -34,7 +35,7 @@ void Zero2WI2C::open()
     if (verbose()) {
         log() << "Opening '" << interface_ << "'\n";
     }
-    fd_ = ::open(interface_.c_str(), O_RDWR | O_NONBLOCK);
+    fd_ = ::open(interface_.c_str(), O_RDWR);
     if (fd_ < 0) {
         if (verbose()) {
             log() << "Failed to open '" << interface_ << "'. Errno=" << errno << ".\n";
@@ -55,23 +56,33 @@ void Zero2WI2C::close() {
     }
 }
 
+bool Zero2WI2C::readBytes(uint8_t address, std::span<uint8_t> data)
+{
+    open();
+
+    struct i2c_msg msg{ address, I2C_M_RD, static_cast<__u16>(data.size()), data.data() };
+    struct i2c_rdwr_ioctl_data msgs{ &msg, 1 };
+
+    auto result = ioctl(fd_, I2C_RDWR, &msgs);
+    if (result == 0) {
+        return true;
+    }
+    if (result != 1) {
+        log() << "Failed to read " << data.size() << " bytes to 0x" << hexHigh(address) << hexLow(address) << ". Errno=" << errno << ".\n";
+        return false;
+    }
+    return true;
+}
+
 bool Zero2WI2C::readOneByte(uint8_t &value)
 {
     open();
 
-    auto result = ::read(fd_, &value, 1);
-    if (result == 1) {
-        return true;
-    }
-    if ((result < 0) && (errno != EAGAIN)) {
-        log() << "Failed to read. Errno=" << errno << ".\n";
-        return false;
-    }
     fd_set fds;
     FD_ZERO(&fds);
     FD_SET(fd_, &fds);
     struct timeval tv{ 0, 100000 }; // 100ms
-    result = select(fd_ + 1, &fds, nullptr, nullptr, &tv);
+    auto result = select(fd_ + 1, &fds, nullptr, nullptr, &tv);
 
     if (result < 0) {
         log() << "Select failed. Errno=" << errno << ".\n";
@@ -95,44 +106,18 @@ bool Zero2WI2C::readMessage(MsgHeader &header, std::vector<uint8_t> &data)
 {
     open();
 
-    if (!readOneByte(header.length) || !readOneByte(header.sender) || !readOneByte(header.checksum)) {
+    std::array<uint8_t, MsgHeaderSize> headerBytes;
+    if (!readBytes(address_, headerBytes)) {
         return false;
     }
+
+    header.command = headerBytes[0];
+    header.length = headerBytes[1];
+    header.sender = headerBytes[2];
+    header.checksum = headerBytes[3];
 
     data.resize(header.length);
-    ssize_t totalBytesRead = 0;
-    struct timeval timeout;
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 100; // wait max 100 usecs per byte
-
-    while (totalBytesRead < header.length) {
-        fd_set read_fds;
-        FD_ZERO(&read_fds);
-        FD_SET(fd_, &read_fds);
-
-        int selectResult = select(fd_ + 1, &read_fds, NULL, NULL, &timeout);
-        if (selectResult == -1) {
-            log() << "Select error. Errno=" << errno << ".\n";
-            return false;
-        } else if (selectResult == 0) {
-            log() << "Read timeout.\n";
-            return false;
-        }
-
-        ssize_t result = ::read(fd_, data.data() + totalBytesRead, header.length - totalBytesRead);
-        if (result < 0) {
-            log() << "Failed to read. Errno=" << errno << ".\n";
-            return false;
-        }
-
-        totalBytesRead += result;
-    }
-
-    if (totalBytesRead != header.length) {
-        log() << "Failed to read " << header.length << " bytes. Errno=" << errno << ".\n";
-        return false;
-    }
-    return true;
+    return readBytes(address_, data);
 }
 
 void Zero2WI2C::switchToControllerMode()
@@ -173,6 +158,9 @@ bool Zero2WI2C::writeBytes(uint8_t address, std::span<uint8_t> data)
     struct i2c_rdwr_ioctl_data msgs{ &msg, 1 };
 
     auto result = ioctl(fd_, I2C_RDWR, &msgs);
+    if (result == 0) {
+        return true;
+    }
     if (result != 1) {
         log() << "Failed to write " << data.size() << " bytes to 0x" << hexHigh(address) << hexLow(address) << ". Errno=" << errno << ".\n";
         return false;

@@ -48,35 +48,31 @@ public:
         return checksum;
     }
 
-    void sendHello(uint8_t address, uint64_t boardId)
-    {
-        MsgHello hello{ boardId };
-        std::vector<uint8_t> data(MsgHeaderSize + sizeof(MsgHello));
-        MsgHeader header{ static_cast<uint8_t>(Commands::Hello), sizeof(MsgHello), i2c_.address(), 0 };
-        std::memcpy(data.data(), &header, MsgHeaderSize);
-        std::memcpy(data.data() + MsgHeaderSize, &hello, sizeof(MsgHello));
-
-        i2c_.writeBytes(address, data);
-    }
-
-    inline void sendHello(uint64_t boardId)
-    {
-        sendHello(0, boardId);
-    }
-
-    void sendHello(uint8_t address, uint8_t id[protocols::idSize])
+    bool sendHello(uint8_t address, uint8_t id[protocols::idSize])
     {
         std::vector<uint8_t> data(MsgHeaderSize + protocols::idSize);
         MsgHeader header{ static_cast<uint8_t>(Commands::Hello), protocols::idSize, i2c_.listenAddress(), computeChecksum(std::span(&id[0], protocols::idSize)) };
         std::memcpy(data.data(), &header, MsgHeaderSize);
         std::memcpy(data.data() + MsgHeaderSize, &id[0], protocols::idSize);
 
-        i2c_.writeBytes(address, data);
+        return i2c_.writeBytes(address, data);
     }
 
-    inline void sendHello(uint8_t id[protocols::idSize])
+    inline bool sendHello(uint8_t id[protocols::idSize])
     {
-        sendHello(0, id);
+        return sendHello(0, id);
+    }
+
+    inline bool sendHello(uint8_t address, uint64_t boardId)
+    {
+        MsgHello hello{ boardId };
+
+        return sendHello(address, hello.boardId.bytes);
+    }
+
+    inline bool sendHello(uint64_t boardId)
+    {
+        return sendHello(0, boardId);
     }
 
     void sendSetAddress(uint64_t boardId, uint8_t address);

@@ -32,7 +32,6 @@ namespace nl::rakis::raspberrypi::interfaces {
         }
 
         bool readOneByte(uint8_t &value);
-        bool readMessage(protocols::MsgHeader &header, std::vector<uint8_t> &data);
 
     public:
         Zero2WI2C() : interface_(i2c1) {}
@@ -47,7 +46,9 @@ namespace nl::rakis::raspberrypi::interfaces {
 
         virtual void switchToResponderMode(uint8_t address, MsgCallback cb) override;
 
+        virtual bool readBytes(uint8_t address, std::span<uint8_t> data) override;
         virtual bool writeBytes(uint8_t address, std::span<uint8_t> data) override;
+        bool readMessage(protocols::MsgHeader &header, std::vector<uint8_t> &data);
     };
 
 } // namespace nl::rakis::raspberrypi::interfaces::zero2w

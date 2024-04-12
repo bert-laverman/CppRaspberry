@@ -217,3 +217,25 @@ void PicoI2C::switchToResponderMode(uint8_t address, MsgCallback cb)
     i2c0->hw->intr_mask = I2C_IC_INTR_STAT_R_RX_FULL_BITS|I2C_IC_INTR_STAT_R_GEN_CALL_BITS;
     irq_set_enabled(I2C0_IRQ, true);
 }
+
+bool PicoI2C::readBytes(uint8_t address, std::span<uint8_t> data)
+{
+    printf("PicoI2C::readBytes(address=0x%02x, data.size=%d)\n", address, data.size());
+    return false;
+}
+
+bool PicoI2C::writeBytes(uint8_t address, std::span<uint8_t> data)
+{
+    auto result = i2c_write_blocking(interface_, address, data.data(), data.size(), false);
+    if (result == PICO_ERROR_GENERIC) {
+        log() << "Failed to write bytes to 0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(address) << ". No one there.\n";
+        return false;
+    } else if (result < 0) {
+        log() << "Failed to write bytes to 0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(address) << ". Errno=" << std::dec << result << "\n";
+        return false;
+    } else if (static_cast<unsigned>(result) != data.size()) {
+        log() << "Failed to write " << std::dec << data.size() << " bytes to 0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(address) << ". Only wrote " << std::dec << result << "\n";
+        return false;
+    }
+    return true;
+}
