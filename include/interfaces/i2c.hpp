@@ -7,7 +7,6 @@
 
 #include <iostream>
 #include <functional>
-#include <vector>
 #include <span>
 
 
@@ -29,7 +28,7 @@ namespace nl::rakis::raspberrypi::protocols {
 namespace nl::rakis::raspberrypi::interfaces
 {
 
-    using MsgCallback = std::function<void(uint8_t command, uint8_t sender, const std::vector<uint8_t>& data)>;
+    using MsgCallback = std::function<void(uint8_t command, uint8_t sender, const std::span<uint8_t> data)>;
 
     class I2C {
         bool verbose_{ false };

@@ -1,6 +1,9 @@
 // Copyright 2024 by Bert Laverman, All rights reserved.
 // Created: 2021-09-11 14:59:47
 
+#include "hardware/i2c.h"
+#include "hardware/timer.h"
+#include "pico/types.h"
 #if !defined(TARGET_PICO) && !defined(HAVE_I2C)
 #error "This file is for the Pico with I2C enabled only!"
 #endif
@@ -24,6 +27,7 @@ PicoI2C &PicoI2C::defaultInstance()
     static PicoI2C instance{i2c0, PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN};
     return instance;
 }
+
 
 void PicoI2C::open()
 {
@@ -99,7 +103,7 @@ static bool i2c_read_raw_blocking(i2c_inst_t* i2c, std::vector<uint8_t>& data, u
 static bool verify_payload(MsgHeader const& header, std::vector<uint8_t> const& data)
 {
     if (header.length != data.size()) {
-        printf("Invalid length\n");
+        printf("Verify payload: Invalid length\n");
         return false;
     }
 
@@ -109,7 +113,7 @@ static bool verify_payload(MsgHeader const& header, std::vector<uint8_t> const& 
     }
 
     if (checksum != header.checksum) {
-        printf("Invalid checksum\n");
+        printf("Verify payload: Invalid checksum\n");
         return false;
     }
 
@@ -120,81 +124,94 @@ static bool verify_payload(MsgHeader const& header, std::vector<uint8_t> const& 
  * @brief I2C0 instance
  */
 static PicoI2C* picoI2C0 = nullptr;
+static PicoI2C* picoI2C1 = nullptr;
 
 
 /**
  * @brief I2C0 interrupt handler
  */
-static void i2c0_cb() {
-    auto status = i2c0->hw->intr_stat;
-    printf("I2C0 interrupt (status=0x%04lx)\n", status);
-
+static void i2c_cb(int channel, i2c_inst_t* i2c, PicoI2C& picoI2C) {
+    auto status = i2c->hw->intr_stat;
+    if (status == 0) {
+        return;
+    }
+    printf("I2C interrupt on channel %d. (status=0x%08lx)\n", channel, status);
     if (status & I2C_IC_INTR_STAT_R_GEN_CALL_BITS) {
-        printf("Clearing General Call (0x0%8lx)\n", i2c0->hw->clr_gen_call);
+        printf("Clearing General Call on channel %d. (0x0%08lx)\n", channel, i2c->hw->clr_gen_call);
 
         if (status & I2C_IC_INTR_STAT_R_RX_FULL_BITS) {
-            printf("I2C0 General call RX full\n");
+            // printf("I2C General call RX full on channel %d.\n", channel);
             MsgHeader header;
-            if (!i2cReadByte(i2c0, header.command) ||
-                !i2cReadByte(i2c0, header.length) ||
-                !i2cReadByte(i2c0, header.sender) ||
-                !i2cReadByte(i2c0, header.checksum))
+            if (!i2cReadByte(i2c, header.command) ||
+                !i2cReadByte(i2c, header.length) ||
+                !i2cReadByte(i2c, header.sender) ||
+                !i2cReadByte(i2c, header.checksum))
             {
-                printf("Timeout trying to receive message header.\n");
+                printf("Timeout trying to receive message header on channel %d.\n", channel);
                 return;
             }
-            printf("I2C0 General Call payload is %d byte(s)\n", header.length);
+            printf("I2C General Call payload on channel %d is %d byte(s), checksum 0x%02x.\n", channel, header.length, header.checksum);
             std::vector<uint8_t> data(header.length, 0);
             if (!i2c_read_raw_blocking(i2c0, data)) {
-                printf("Timeout trying to receive message data.\n");
+                printf("Timeout trying to receive message data on I2C channel %d.\n", channel);
                 return;
             }
 
             if (!verify_payload(header, data)) {
+                printf("Checksum failed for General Call message on I2C channel %d.\n", channel);
                 return;
             }
 
-            printf("Checking callback\n");
-            if ((picoI2C0 != nullptr) && picoI2C0->callback()) {
-                printf("Calling callback\n");
-                picoI2C0->callback()(header.command, header.sender, data);
+            if (picoI2C.callback()) {
+                // printf("Calling I2C callback for channel %d.\n", channel);
+                picoI2C.callback()(header.command, header.sender, data);
+            } else {
+                printf("No callback set for channel %d.\n", channel);
             }
         } else {
-            printf("I2C0 General Call, no data yet\n");
+            printf("I2C General Call announced on channel %d.\n", channel);
         }
     } else if (status & I2C_IC_INTR_STAT_R_RX_FULL_BITS) {
-        printf("I2C0 RX full\n");
+        // printf("I2C RX full on channel %d.\n", channel);
 
         MsgHeader header;
-        if (!i2cReadByte(i2c0, header.command) ||
-            !i2cReadByte(i2c0, header.length) ||
-            !i2cReadByte(i2c0, header.sender) ||
-            !i2cReadByte(i2c0, header.checksum))
+        if (!i2cReadByte(i2c, header.command) ||
+            !i2cReadByte(i2c, header.length) ||
+            !i2cReadByte(i2c, header.sender) ||
+            !i2cReadByte(i2c, header.checksum))
         {
-            printf("Timeout trying to receive message header.\n");
+                printf("Timeout trying to receive message header on channel %d.\n", channel);
             return;
         }
-        printf("I2C0 payload is %d byte(s)\n", header.length);
+        printf("I2C message payload on channel %d is %d byte(s), checksum 0x%02x.\n", channel, header.length, header.checksum);
         std::vector<uint8_t> data(header.length, 0);
-        if (!i2c_read_raw_blocking(i2c0, data)) {
-            printf("Timeout trying to receive message data.\n");
+        if (!i2c_read_raw_blocking(i2c, data)) {
+            printf("Timeout trying to receive message data on I2C channel %d.\n", channel);
             return;
         }
 
         if (!verify_payload(header, data)) {
+            printf("Checksum failed for message on I2C channel %d.\n", channel);
             return;
         }
 
-        printf("Checking callback\n");
-        if ((picoI2C0 != nullptr) && picoI2C0->callback()) {
-            printf("Calling callback\n");
-            picoI2C0->callback()(header.command, header.sender, data);
+        if (picoI2C.callback()) {
+            // printf("Calling I2C callback for channel %d.\n", channel);
+            picoI2C.callback()(header.command, header.sender, data);
+        } else {
+            printf("No callback set for channel %d.\n", channel);
         }
-    } else if (status == 0) {
-        printf("I2C0 zero interrupt\n");
     } else {
-        printf("I2C0 unknown interrupt\n");
+        printf("I2C unknown interrupt on channel %d.\n", channel);
     }
+}
+
+static void i2c0_cb() {
+    i2c_cb(0, i2c0, *picoI2C0);
+}
+
+static void i2c1_cb() {
+    i2c_cb(1, i2c1, *picoI2C1);
 }
 
 void PicoI2C::switchToResponderMode(uint8_t address, MsgCallback cb)
@@ -209,13 +226,19 @@ void PicoI2C::switchToResponderMode(uint8_t address, MsgCallback cb)
         printf("Setting up IRQ handler for i2c0\n");
         picoI2C0 = this;
         irq_set_exclusive_handler(I2C0_IRQ, i2c0_cb);
-    }
-    else {
+        i2c_set_slave_mode(interface_, true, address);
+        i2c0->hw->intr_mask = I2C_IC_INTR_STAT_R_RX_FULL_BITS|I2C_IC_INTR_STAT_R_GEN_CALL_BITS;
+        irq_set_enabled(I2C0_IRQ, true);
+    } else if (interface_ == i2c1) {
+        printf("Setting up IRQ handler for i2c1\n");
+        picoI2C1 = this;
+        irq_set_exclusive_handler(I2C1_IRQ, i2c1_cb);
+        i2c_set_slave_mode(interface_, true, address);
+        i2c1->hw->intr_mask = I2C_IC_INTR_STAT_R_RX_FULL_BITS|I2C_IC_INTR_STAT_R_GEN_CALL_BITS;
+        irq_set_enabled(I2C1_IRQ, true);
+    } else {
         log() << "Unknown I2C interface" << std::endl;
     }
-    i2c_set_slave_mode(interface_, true, address);
-    i2c0->hw->intr_mask = I2C_IC_INTR_STAT_R_RX_FULL_BITS|I2C_IC_INTR_STAT_R_GEN_CALL_BITS;
-    irq_set_enabled(I2C0_IRQ, true);
 }
 
 bool PicoI2C::readBytes(uint8_t address, std::span<uint8_t> data)
@@ -226,15 +249,19 @@ bool PicoI2C::readBytes(uint8_t address, std::span<uint8_t> data)
 
 bool PicoI2C::writeBytes(uint8_t address, std::span<uint8_t> data)
 {
-    auto result = i2c_write_blocking(interface_, address, data.data(), data.size(), false);
+    printf("Sending %d bytes to 0x%02x.\n", data.size(), address);
+
+    [[maybe_unused]]
+    absolute_time_t deadline{ time_us_64() + (5000 * data.size()) };
+    auto result = i2c_write_blocking_until(interface_, address, data.data(), data.size(), false, deadline);
     if (result == PICO_ERROR_GENERIC) {
-        log() << "Failed to write bytes to 0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(address) << ". No one there.\n";
+        printf("Failed to write bytes to 0x%02x. No one there.\n", address);
         return false;
     } else if (result < 0) {
-        log() << "Failed to write bytes to 0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(address) << ". Errno=" << std::dec << result << "\n";
+        printf("Failed to write bytes to 0x%02x. Errno=%d\n", address, result);
         return false;
     } else if (static_cast<unsigned>(result) != data.size()) {
-        log() << "Failed to write " << std::dec << data.size() << " bytes to 0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(address) << ". Only wrote " << std::dec << result << "\n";
+        printf("Failed to write %d bytes to 0x%02x. Only wrote %d bytes.\n", data.size(), address, result);
         return false;
     }
     return true;

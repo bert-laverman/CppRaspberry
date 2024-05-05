@@ -2,7 +2,7 @@
 #
 
 # Set your target app name here
-set(APP_NAME pico-test-spi)
+set(APP_NAME replaceme)
 
 cmake_minimum_required(VERSION 3.13)
 
@@ -17,6 +17,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 # Set CMake defines for the Raspberry Pi Pico and required components
 set(TARGET_PICO on)
+set(TARGET_ZERO2W off)
 set(HAVE_I2C on)
 set(HAVE_SPI on)
 set(HAVE_PWM off)
@@ -31,7 +32,7 @@ set(PICO_SDK_PATH $ENV{PICO_SDK_PATH})
 # The CppRaspberry library location is taken from the CPP_RASPBERRY_PATH environment variable
 # set(CPP_RASPBERRY_PATH $ENV{CPP_RASPBERRY_PATH})
 # If this is not set, you can set it here
-set(CPP_RASPBERRY_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../CppRaspberry")
+set(CPP_RASPBERRY_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../CppRaspberry")
 
 set(PICO_BOARD pico CACHE STRING "Board type")
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
@@ -54,8 +55,12 @@ pico_sdk_init()
 # include the CppRaspberry library
 include(${CPP_RASPBERRY_PATH}/CppRaspberry.cmake)
 
+# Add the sources for the local project
+# Example: set(LOCAL_SOURCES "${CMAKE_CURRENT_LIST_DIR}/src/pico-test-spi.cpp")
+set (LOCAL_SOURCES "")
+
 # And now our local project
-add_executable(${APP_NAME} ${CMAKE_CURRENT_LIST_DIR}/src/pico-test-spi.cpp)
+add_executable(${APP_NAME} ${LOCAL_SOURCES})
 
 # Add CppRaspberry library
 add_cpp_raspberry_app(${APP_NAME})

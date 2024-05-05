@@ -19,6 +19,10 @@ enum class Commands : uint8_t {
     Max7219     = 0x11,
 };
 
+inline Commands toCommand(uint8_t value) {
+    return static_cast<Commands>(value);
+}
+
 inline constexpr uint64_t ControllerId = 0x0000000000000000;
 
 inline constexpr unsigned idSize = sizeof(uint64_t);
@@ -39,7 +43,7 @@ struct MsgHello {
 };
 
 /**
- * @brief A board manaager's reply to set a controller's address.
+ * @brief A board manager's reply to set a controller's address.
  */
 struct MsgSetAddress {
     BoardId boardId;
@@ -103,6 +107,34 @@ enum class InterfaceTypes : uint8_t {
 
     MCP23017            = 0x10,
     TLC59711            = 0x11,
+};
+
+enum class LedCommand : uint8_t {
+    Off                 = 0x00,
+    On                  = 0x01,
+    Blink               = 0x02,
+    Pulse               = 0x03,
+};
+
+struct MsgLed {
+    uint8_t deviceId;
+    LedCommand command;
+};
+
+
+enum class Max7219Command : uint8_t {
+    Reset               = 0x00,
+    SetNumModules       = 0x01,
+    ClearDisplay        = 0x02,
+    SetBrightness       = 0x03,
+    SetValue            = 0x04,
+    SendData            = 0x05,
+};
+
+struct MsgMax7219 {
+    uint8_t deviceId;
+};
+struct MsgMax7219Reset : MsgMax7219 {
 };
 
 } // namespace nl::rakis::raspberrypi::protocols

@@ -20,7 +20,7 @@
 namespace nl::rakis::raspberrypi {
 
 class Zero2W
-    : public virtual RaspberryPi<std::ostream
+    : public RaspberryPi<std::ostream
 #if defined(HAVE_I2C)
     , interfaces::Zero2WI2C
 #endif

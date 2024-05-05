@@ -3,10 +3,8 @@
 // Created: 2021-09-11 14:59:47
 // Purpose: Provide an interface to the I2C bus on the Raspberry Pi Pico
 
-#include <ios>
 #include <vector>
 #include <iostream>
-#include <iomanip>
 
 #include <pico/stdlib.h>
 #include "hardware/i2c.h"
@@ -50,7 +48,7 @@ namespace nl::rakis::raspberrypi::interfaces {
         ~PicoI2C() = default;
 
 
-        static PicoI2C &defaultInstance();
+        static PicoI2C& defaultInstance();
 
         virtual void open() override;
         virtual void close() override;

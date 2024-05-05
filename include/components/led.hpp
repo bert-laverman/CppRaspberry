@@ -1,12 +1,11 @@
 #pragma once
 // Copyright 2024 by Bert Laverman, All rights reserved.
-// Created: 2021-09-11 14:59:47
-// Purpose: A simble pushbutton
 
 #include <pico/stdlib.h>
 
 
 namespace nl::rakis::raspberrypi::components {
+
 
 class Led {
     uint pin_;
@@ -21,6 +20,7 @@ public:
             gpio_pull_up(pin_);
         }
     }
+
     Led(int pin, bool pullUp = false) : pin_(uint(pin)), pullUp_(pullUp) {
         gpio_init(pin_);
         gpio_set_dir(pin_, GPIO_OUT);
@@ -28,7 +28,9 @@ public:
             gpio_pull_up(pin_);
         }
     }
+
     virtual ~Led() = default;
+
     Led(Led const&) = default;
     Led(Led&&) = default;
     Led& operator=(Led const&) = default;
