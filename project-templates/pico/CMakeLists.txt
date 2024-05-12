@@ -32,7 +32,12 @@ set(PICO_SDK_PATH $ENV{PICO_SDK_PATH})
 # The CppRaspberry library location is taken from the CPP_RASPBERRY_PATH environment variable
 # set(CPP_RASPBERRY_PATH $ENV{CPP_RASPBERRY_PATH})
 # If this is not set, you can set it here
-set(CPP_RASPBERRY_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../CppRaspberry")
+if(DEFINED $ENV{CPP_RASPBERRY_PATH})
+  set(CPP_RASPBERRY_PATH $ENV{CPP_RASPBERRY_PATH})
+else()
+  # If this is not set, you can set it here
+  set(CPP_RASPBERRY_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../CppRaspberry")
+endif()
 
 set(PICO_BOARD pico CACHE STRING "Board type")
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
@@ -56,8 +61,8 @@ pico_sdk_init()
 include(${CPP_RASPBERRY_PATH}/CppRaspberry.cmake)
 
 # Add the sources for the local project
-# Example: set(LOCAL_SOURCES "${CMAKE_CURRENT_LIST_DIR}/src/pico-test-spi.cpp")
-set (LOCAL_SOURCES "")
+# Example: set(LOCAL_SOURCES "${CMAKE_CURRENT_LIST_DIR}/src/main.cpp")
+set (LOCAL_SOURCES "${CMAKE_CURRENT_LIST_DIR}/../main.cpp")
 
 # And now our local project
 add_executable(${APP_NAME} ${LOCAL_SOURCES})
