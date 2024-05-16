@@ -45,7 +45,7 @@ void Zero2WSPI::open()
         if (verbose()) {
             log() << "Opening SPI channel 0.\n";
         }
-        fd_ =  spi_open(channel_, 0, 10*1000*1000, 0x0000);
+        fd_ =  spi_open(channel_, 0, baudRate(), 0x0000);
         if (fd_ < 0) {
             switch (fd_) {
             case PI_BAD_SPI_CHANNEL:

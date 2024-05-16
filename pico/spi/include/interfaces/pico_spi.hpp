@@ -39,26 +39,11 @@ namespace nl::rakis::raspberrypi::interfaces
         unsigned misoPin_;
 
     public:
-        PicoSPI(spi_inst_t *interface, unsigned csPin, unsigned sckPin, unsigned mosiPin, unsigned misoPin)
-            : interface_(interface), csPin_(csPin), sckPin_(sckPin), mosiPin_(mosiPin), misoPin_(misoPin)
-        {
-            spi_init(interface_, 10*1000*1000);
+        PicoSPI(spi_inst_t *interface, unsigned csPin, unsigned sckPin, unsigned mosiPin, unsigned misoPin);
 
-            gpio_init(csPin_);
-            gpio_set_dir(csPin_, GPIO_OUT);
+        PicoSPI(unsigned csPin, unsigned sckPin, unsigned mosiPin, unsigned misoPin);
 
-            gpio_set_function(sckPin_, GPIO_FUNC_SPI);
-            gpio_set_function(mosiPin_, GPIO_FUNC_SPI);
-            gpio_set_function(misoPin_, GPIO_FUNC_SPI);
-        }
-
-        PicoSPI(unsigned csPin, unsigned sckPin, unsigned mosiPin, unsigned misoPin) : PicoSPI(spi0, csPin, sckPin, mosiPin, misoPin)
-        {
-        }
-
-        PicoSPI() : PicoSPI(+DefaultPin::SPI0_CS, +DefaultPin::SPI0_SCK, +DefaultPin::SPI0_MOSI, +DefaultPin::SPI0_MISO)
-        {
-        }
+        PicoSPI();
 
         PicoSPI(const PicoSPI &) = default;
         PicoSPI(PicoSPI &&) = default;
@@ -73,6 +58,10 @@ namespace nl::rakis::raspberrypi::interfaces
         }
 
     public:
+        virtual void open() override;
+
+        virtual void close() override;
+
         virtual void select() override;
 
         virtual void deselect() override;

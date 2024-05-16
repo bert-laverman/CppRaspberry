@@ -78,7 +78,6 @@ public:
 #if defined(HAVE_SPI)
     inline SPIImpl& spi(unsigned num = 0) { return spi_[num]; }
 
-
     inline auto addInterface(SPIImpl const& spi) {
         auto num = spi_.size();
         spi_.push_back(spi);

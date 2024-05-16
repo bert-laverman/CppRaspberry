@@ -1,7 +1,6 @@
 #pragma once
 // Copyright 2024 by Bert Laverman, All rights reserved.
-// Created: 2021-09-11 14:59:47
-#include <numbers>
+
 #include <cstdint>
 
 namespace nl::rakis::raspberrypi::protocols {
@@ -119,22 +118,6 @@ enum class LedCommand : uint8_t {
 struct MsgLed {
     uint8_t deviceId;
     LedCommand command;
-};
-
-
-enum class Max7219Command : uint8_t {
-    Reset               = 0x00,
-    SetNumModules       = 0x01,
-    ClearDisplay        = 0x02,
-    SetBrightness       = 0x03,
-    SetValue            = 0x04,
-    SendData            = 0x05,
-};
-
-struct MsgMax7219 {
-    uint8_t deviceId;
-};
-struct MsgMax7219Reset : MsgMax7219 {
 };
 
 } // namespace nl::rakis::raspberrypi::protocols

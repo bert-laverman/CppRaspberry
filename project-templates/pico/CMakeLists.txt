@@ -21,6 +21,8 @@ set(TARGET_ZERO2W off)
 set(HAVE_I2C on)
 set(HAVE_SPI on)
 set(HAVE_PWM off)
+set(HAVE_MAX7219 on)
+set(HAVE_LCD2X16 on)
 
 #
 # The pico-sdk location is taken from the PICO_SDK_PATH environment variable

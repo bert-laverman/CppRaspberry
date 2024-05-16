@@ -32,6 +32,7 @@ namespace nl::rakis::raspberrypi::interfaces
         std::string interface_;
         int fd_{ -1 };
         int channel_{ -1 };
+        unsigned int baudRate_{ 10*1000*1000 };
 
     protected:
         virtual std::ostream &log() override {
@@ -63,6 +64,9 @@ namespace nl::rakis::raspberrypi::interfaces
         {
             close();
         }
+
+        inline unsigned int baudRate() const { return baudRate_; }
+        inline void baudRate(unsigned int baudRate) { baudRate_ = baudRate; }
 
         virtual void open() override;
 

@@ -5,14 +5,16 @@
 #include "hardware/timer.h"
 #include "pico/error.h"
 #include "pico/types.h"
-#if !defined(TARGET_PICO) && !defined(HAVE_I2C)
-#error "This file is for the Pico with I2C enabled only!"
-#endif
 
 #include <vector>
 #include <iostream>
 
-#include <pico/interfaces/pico_i2c.hpp>
+#include <interfaces/pico_i2c.hpp>
+
+#if !defined(TARGET_PICO) && !defined(HAVE_I2C)
+#error "This file is for the Pico with I2C enabled only!"
+#endif
+
 
 using nl::rakis::raspberrypi::protocols::MsgHeader;
 using namespace nl::rakis::raspberrypi::interfaces;

@@ -64,7 +64,7 @@ public:
         return checksum;
     }
 
-    bool sendMessage(uint8_t address, Commands command, std::span<uint8_t> msg) {
+    bool sendMessage(uint8_t address, Commands command, const std::span<uint8_t> msg) {
         std::vector<uint8_t> data(MsgHeaderSize + msg.size());
         std::memcpy(data.data() + MsgHeaderSize, msg.data(), msg.size());
 
@@ -77,6 +77,11 @@ public:
         std::memcpy(data.data(), &header, MsgHeaderSize);
 
         return i2cOut_.writeBytes(address, data);
+    }
+
+    template <class Msg>
+    inline bool sendMessage(uint8_t address, Commands command, Msg& msg) {
+        return sendMessage(address, command, std::span<uint8_t>(reinterpret_cast<uint8_t*>(&msg), sizeof(Msg)));
     }
 
     inline bool sendHello(uint8_t address, uint8_t id[protocols::idSize])
@@ -103,8 +108,8 @@ public:
 
     inline bool sendSetAddress(uint64_t boardId, uint8_t address)
     {
-        MsgSetAddress setAddress{ .boardId={boardId}, .address=address };
-        return sendMessage(0, Commands::SetAddress, std::span<uint8_t> (reinterpret_cast<uint8_t*>(&setAddress), sizeof(MsgSetAddress)));
+        MsgSetAddress msg{ .boardId={boardId}, .address=address };
+        return sendMessage(0, Commands::SetAddress, msg);
     }
 };
 

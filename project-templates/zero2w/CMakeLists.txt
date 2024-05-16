@@ -21,6 +21,8 @@ set(TARGET_ZERO2W on)
 set(HAVE_I2C on)
 set(HAVE_SPI on)
 set(HAVE_PWM off)
+set(HAVE_MAX7219 on)
+set(HAVE_LCD2X16 on)
 
 #
 # The CppRaspberry library location is taken from the CPP_RASPBERRY_PATH environment variable

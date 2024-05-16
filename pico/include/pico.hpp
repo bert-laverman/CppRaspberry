@@ -5,20 +5,21 @@
 
 #include <iostream>
 
-#include "pico/stdlib.h"
-#include "pico/stdio.h"
+#include <pico/stdlib.h>
+#include <pico/stdio.h>
 
 #include <raspberry_pi.hpp>
 
 #if defined(HAVE_I2C)
-#include "hardware/i2c.h"
-#include <pico/interfaces/pico_i2c.hpp>
+#include <hardware/i2c.h>
+
+#include <interfaces/pico_i2c.hpp>
 #endif
 
 #if defined(HAVE_SPI)
-#include "hardware/spi.h"
+#include <hardware/spi.h>
 
-#include <pico/interfaces/pico_spi.hpp>
+#include <interfaces/pico_spi.hpp>
 #endif
 
 namespace nl::rakis::raspberrypi {
