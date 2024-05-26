@@ -17,7 +17,7 @@ extern "C" {
 #include <pigpiod_if2.h>
 }
 
-#include <interfaces/zero2w_i2c.hpp>
+#include <interfaces/zero2w-i2c.hpp>
 
 /*
  * The I2C interface on the non-Pico Raspberry Pi's is a mess. Most libraries provide the Controller side of the protocol,
@@ -35,41 +35,6 @@ extern "C" {
 using nl::rakis::raspberrypi::protocols::MsgHeader;
 using nl::rakis::raspberrypi::protocols::MsgHeaderSize;
 using namespace nl::rakis::raspberrypi::interfaces;
-
-Zero2WI2C::~Zero2WI2C()
-{
-}
-
-
-void Zero2WI2C::open()
-{
-    throw std::runtime_error("Zero2WI2C::open() not implemented");
-}
-
-void Zero2WI2C::close()
-{
-    throw std::runtime_error("Zero2WI2C::close() not implemented");
-}
-
-void Zero2WI2C::switchToControllerMode()
-{
-    throw std::runtime_error("Zero2WI2C::switchToControllerMode() not implemented");
-}
-
-void Zero2WI2C::switchToResponderMode([[maybe_unused]] uint8_t address, [[maybe_unused]] MsgCallback callback)
-{
-    throw std::runtime_error("Zero2WI2C::switchToResponderMode() not implemented");
-}
-
-bool Zero2WI2C::readBytes([[maybe_unused]] uint8_t address, [[maybe_unused]] std::span<uint8_t> data)
-{
-    throw std::runtime_error("Zero2WI2C::readBytes() not implemented");
-}
-
-bool Zero2WI2C::writeBytes([[maybe_unused]] uint8_t address, [[maybe_unused]] std::span<uint8_t> data)
-{
-    throw std::runtime_error("Zero2WI2C::writeBytes() not implemented");
-}
 
 /*
  * The Zero2WI2C_i2cdev class is an implementation of the Zero2WI2C interface using the i2c-dev library.
@@ -130,11 +95,9 @@ void Zero2WI2C_i2cdev::switchToControllerMode()
         log() << "Switching to Controller mode\n";
     }
     reset();
-
-    controller(true);
 }
 
-void Zero2WI2C_i2cdev::switchToResponderMode([[maybe_unused]] uint8_t address, [[maybe_unused]] MsgCallback cb)
+void Zero2WI2C_i2cdev::switchToResponderMode([[maybe_unused]] uint8_t address, [[maybe_unused]] protocols::MsgCallback cb)
 {
     log() << "Responder mode not available via i2c-dev\n";
     throw std::runtime_error("Responder mode not available via i2c-dev");
@@ -227,7 +190,7 @@ void Zero2WI2C_pigpio::processBytes(std::span<uint8_t> data)
             break;
         }
         if (callback()) {
-            callback()(header.command, header.sender, std::span<uint8_t>(bytes_.data() + MsgHeaderSize, header.length));
+            callback()(protocols::toCommand(header.command), header.sender, std::span<uint8_t>(bytes_.data() + MsgHeaderSize, header.length));
         }
         bytes_.erase(bytes_.begin(), bytes_.begin() + MsgHeaderSize + header.length);
     }
@@ -235,8 +198,8 @@ void Zero2WI2C_pigpio::processBytes(std::span<uint8_t> data)
 
 void Zero2WI2C_pigpio::listen(Zero2WI2C_pigpio& bus)
 {
-    if (!bus.initialized() || bus.controller() || !bus.listening()) {
-        std::cerr << std::format("listen(): Not initialized ({}), in controller mode ({}), or not listening ({})\n", !bus.initialized(), bus.controller(), !bus.listening());
+    if (!bus.initialized() || !bus.listening()) {
+        std::cerr << std::format("listen(): Not initialized ({}) or not listening ({})\n", !bus.initialized(), !bus.listening());
         return;
     }
     // if (verbose()) {
@@ -312,7 +275,6 @@ void Zero2WI2C_pigpio::stopListening()
         log() << std::format("bsc_i2c() returned 0x{:04x}\n", status);
     }
     std::cerr << "Told pigpiod to stop listening\n";
-    controller(true);
 }
 
 void Zero2WI2C_pigpio::close() {
@@ -416,12 +378,12 @@ void Zero2WI2C_pigpio::switchToControllerMode()
     throw std::runtime_error("Controller mode not available via pigpio");
 }
 
-void Zero2WI2C_pigpio::switchToResponderMode(uint8_t address, MsgCallback cb)
+void Zero2WI2C_pigpio::switchToResponderMode(uint8_t address, protocols::MsgCallback cb)
 {
     open();
 
-    if (!initialized() || !controller()) {
-        log() << std::format("Not initialized ({}) or already in Responder mode. ({})\n", !initialized(), !controller());
+    if (!initialized() || listening()) {
+        log() << std::format("Not initialized ({}) or already in Responder mode. ({})\n", !initialized(), listening());
         return;
     }
     if (listening()) {
@@ -436,6 +398,5 @@ void Zero2WI2C_pigpio::switchToResponderMode(uint8_t address, MsgCallback cb)
     listenAddress(address);
     callback(cb);
 
-    controller(false);
     startListening();
 }

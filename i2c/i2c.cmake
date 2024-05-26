@@ -6,4 +6,4 @@ set(CPP_RASPBERRY_INCLUDES ${CPP_RASPBERRY_INCLUDES}
     ${CMAKE_CURRENT_LIST_DIR}/include)
 
 set(CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES}
-    ${CMAKE_CURRENT_LIST_DIR}/src/protocols/i2c_protocol_driver.cpp)
+    ${CMAKE_CURRENT_LIST_DIR}/src/protocols/i2c-protocol-driver.cpp)

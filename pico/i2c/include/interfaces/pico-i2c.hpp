@@ -27,11 +27,6 @@ namespace nl::rakis::raspberrypi::interfaces {
             i2c_read_raw_blocking(interface_, date.data(), date.size());
         }
 
-    protected:
-        virtual std::ostream &log() {
-            return std::cout;
-        }
-
     public:
         PicoI2C() = default;
 
@@ -47,6 +42,10 @@ namespace nl::rakis::raspberrypi::interfaces {
         PicoI2C &operator=(PicoI2C &&) = default;
         ~PicoI2C() = default;
 
+        virtual std::ostream &log() {
+            return std::cout;
+        }
+
         inline int channel() const { return i2c_hw_index(interface_); }
 
         static PicoI2C& defaultInstance();
@@ -56,7 +55,7 @@ namespace nl::rakis::raspberrypi::interfaces {
 
         virtual void switchToControllerMode() override;
 
-        virtual void switchToResponderMode(uint8_t address, MsgCallback cb) override;
+        virtual void switchToResponderMode(uint8_t address, protocols::MsgCallback cb) override;
 
         virtual bool readBytes(uint8_t address, std::span<uint8_t> data) override;
 

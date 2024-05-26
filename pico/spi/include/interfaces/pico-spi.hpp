@@ -8,8 +8,8 @@
 #include <array>
 #include <functional>
 
-#include "pico/stdlib.h"
-#include "hardware/spi.h"
+#include <pico/stdlib.h>
+#include <hardware/spi.h>
 
 #include <interfaces/spi.hpp>
 
@@ -31,6 +31,7 @@ namespace nl::rakis::raspberrypi::interfaces
 
     class PicoSPI : public virtual SPI
     {
+        bool initialized_{ false };
         spi_inst_t *interface_;
 
         unsigned csPin_;
@@ -56,6 +57,9 @@ namespace nl::rakis::raspberrypi::interfaces
         virtual std::ostream &log() {
             return std::cout;
         }
+
+        inline bool initialized() const { return initialized_; }
+        inline void initialized(bool init) { initialized_ = init; }
 
     public:
         virtual void open() override;

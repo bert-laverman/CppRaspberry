@@ -8,7 +8,7 @@ extern "C" {
 #include <pigpiod_if2.h>
 }
 
-#include <interfaces/zero2w_spi.hpp>
+#include <interfaces/zero2w-spi.hpp>
 
 using namespace nl::rakis::raspberrypi::interfaces;
 

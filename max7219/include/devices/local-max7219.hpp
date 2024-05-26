@@ -63,7 +63,7 @@ protected:
      * 
      * @param num_modules The new number of modules.
      */
-    virtual void numModulesChanged(unsigned num_modules) override {
+    void numModulesChanged(unsigned num_modules) override {
         buffer().resize(num_modules, { .brightness = 7, .scanLimit = 7, .decodeMode = 0, .buffer = { 0 } });
     }
 
@@ -76,52 +76,6 @@ protected:
         numModulesChanged(interface().numModules());
     }
 
-    /**
-     * @brief Sends the cached brightness levels to all modules.
-     */
-    virtual void sendBrightness() override {
-        interface().writeAll([this](unsigned module) {
-            return std::array<uint8_t, 2>{ CMD_BRIGHTNESS, buffer()[module].brightness };
-        });
-        resetDirtyBrightness();
-    }
-
-    /**
-     * @brief Sends the cached scan limits to all modules.
-     */
-    virtual void sendScanLimit() override {
-        interface().writeAll([this](unsigned module) {
-            return std::array<uint8_t, 2>{ CMD_SCANLIMIT, buffer()[module].scanLimit };
-        });
-        resetDirtyScanLimit();
-    }
-
-    /**
-     * @brief Sends the cached decode modes to all modules.
-     */
-    virtual void sendDecodeMode() override {
-        interface().writeAll([this](unsigned module) {
-            return std::array<uint8_t, 2>{ CMD_DECODEMODE, buffer()[module].decodeMode };
-        });
-        resetDirtyDecodeMode();
-    }
-
-    /**
-     * @brief Sends the display data to the MAX7219 device.
-     * 
-     * This method sends the display data stored in the buffer to the MAX7219 device.
-     */
-    virtual void sendBuffer() override {
-        if (isDirtyBuffer()) {
-            for (unsigned pos = 0; pos < 8; ++pos) {
-                interface().writeAll([pos,this](unsigned module){
-                    return std::array<uint8_t, 2>{uint8_t(CMD_DIGIT0 + pos), buffer()[module].buffer[pos]};
-                });
-            }
-            resetDirtyBuffer();
-        }
-    }
-
 public:
     /**
      * @brief Shuts down all MAX7219 devices.
@@ -129,7 +83,7 @@ public:
      * This function sends the shutdown command to the MAX7219 device, 
      * which turns off all the LEDs and stops the display operation.
      */
-    virtual void shutdown() override {
+    void shutdown() override {
         std::array<uint8_t, 2> buf{CMD_SHUTDOWN, 0};
         interface().writeAll(buf);
     }
@@ -139,7 +93,7 @@ public:
      * 
      * @param pos The position of the MAX7219 device.
      */
-    virtual void shutdown(uint8_t pos) override {
+    void shutdown(uint8_t pos) override {
         std::array<uint8_t, 2> buf{CMD_SHUTDOWN, 0};
         interface().writeAll([pos, buf](unsigned module) {
             return (pos == module) ? buf : BUF_NOOP;
@@ -152,7 +106,7 @@ public:
      * This function sends the necessary commands to initialize the MAX7219 device.
      * It sets the shutdown mode to normal operation.
      */
-    virtual void startup() override {
+    void startup() override {
         std::array<uint8_t, 2> buf{CMD_SHUTDOWN, 1};
         interface().writeAll(buf);
     }
@@ -162,7 +116,7 @@ public:
      * 
      * @param pos The position of the MAX7219 device.
      */
-    virtual void startup(uint8_t pos) override {
+    void startup(uint8_t pos) override {
         std::array<uint8_t, 2> buf{CMD_SHUTDOWN, 1};
         interface().writeAll([pos, buf](unsigned module) {
             return (pos == module) ? buf : BUF_NOOP;
@@ -174,7 +128,7 @@ public:
      * 
      * @param value The value to set for the display test. Non-zero value turns on the test, while zero turns it off.
      */
-    virtual void displayTest(uint8_t value) override {
+    void displayTest(uint8_t value) override {
         std::array<uint8_t, 2> buf{CMD_DISPLAYTEST, value};
         interface().writeAll(buf);
     }
@@ -185,7 +139,7 @@ public:
      * @param pos The position of the MAX7219 device.
      * @param value The display test value to set (0-1).
      */
-    virtual void displayTest(uint8_t pos, uint8_t value) override {
+    void displayTest(uint8_t pos, uint8_t value) override {
         std::array<uint8_t, 2> buf{CMD_DISPLAYTEST, value};
         interface().writeAll([pos, buf](unsigned module) {
             return (pos == module) ? buf : BUF_NOOP;
@@ -195,7 +149,7 @@ public:
     /**
      * @brief Reset the attached modules.
      */
-     virtual void reset() override {
+     void reset() override {
         writeImmediately(true);
         shutdown();
         displayTest(0);
@@ -206,6 +160,52 @@ public:
         clear();
         writeImmediately(false);
      }
+
+    /**
+     * @brief Sends the cached brightness levels to all modules.
+     */
+    void sendBrightness() override {
+        interface().writeAll([this](unsigned module) {
+            return std::array<uint8_t, 2>{ CMD_BRIGHTNESS, buffer()[module].brightness };
+        });
+        resetDirtyBrightness();
+    }
+
+    /**
+     * @brief Sends the cached scan limits to all modules.
+     */
+    void sendScanLimit() override {
+        interface().writeAll([this](unsigned module) {
+            return std::array<uint8_t, 2>{ CMD_SCANLIMIT, buffer()[module].scanLimit };
+        });
+        resetDirtyScanLimit();
+    }
+
+    /**
+     * @brief Sends the cached decode modes to all modules.
+     */
+    void sendDecodeMode() override {
+        interface().writeAll([this](unsigned module) {
+            return std::array<uint8_t, 2>{ CMD_DECODEMODE, buffer()[module].decodeMode };
+        });
+        resetDirtyDecodeMode();
+    }
+
+    /**
+     * @brief Sends the display data to the MAX7219 device.
+     * 
+     * This method sends the display data stored in the buffer to the MAX7219 device.
+     */
+    void sendBuffer() override {
+        if (isDirtyBuffer()) {
+            for (unsigned pos = 0; pos < 8; ++pos) {
+                interface().writeAll([pos,this](unsigned module){
+                    return std::array<uint8_t, 2>{uint8_t(CMD_DIGIT0 + pos), buffer()[module].buffer[pos]};
+                });
+            }
+            resetDirtyBuffer();
+        }
+    }
 };
 
 } // namespace nl::rakis::raspberrypi::devices

@@ -4,6 +4,8 @@ if(NOT HAVE_SPI)
 message(FATAL_ERROR "A SPI interface is required for the MAX7219 driver")
 endif()
 
+add_compile_definitions(HAVE_MAX7219)
+
 set(CPP_RASPBERRY_INCLUDES ${CPP_RASPBERRY_INCLUDES}
     ${CMAKE_CURRENT_LIST_DIR}/include)
 

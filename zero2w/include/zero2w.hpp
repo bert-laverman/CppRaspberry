@@ -7,13 +7,13 @@
 #include <chrono>
 #include <thread>
 
-#include <raspberry_pi.hpp>
+#include <raspberry-pi.hpp>
 
 #if defined(HAVE_I2C)
-#include <interfaces/zero2w_i2c.hpp>
+#include <interfaces/zero2w-i2c.hpp>
 #endif
 #if defined(HAVE_SPI)
-#include <interfaces/zero2w_spi.hpp>
+#include <interfaces/zero2w-spi.hpp>
 #endif
 
 

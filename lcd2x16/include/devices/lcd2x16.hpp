@@ -28,7 +28,7 @@ static inline void sleep_for(unsigned ms) {
 
 #endif
 
-#include <raspberry_pi.hpp>
+#include <raspberry-pi.hpp>
 
 #include <interfaces/i2c.hpp>
 

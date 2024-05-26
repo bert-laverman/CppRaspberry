@@ -6,7 +6,7 @@
 #include <pico/stdlib.h>
 
 
-namespace nl::rakis::raspberrypi::components {
+namespace nl::rakis::raspberrypi::devices {
 
 class Button {
     uint pin_;
@@ -20,4 +20,4 @@ public:
     virtual ~Button() = default;
 };
 
-} // namespace nl::rakis::raspberrypi::components
+} // namespace nl::rakis::raspberrypi::devices

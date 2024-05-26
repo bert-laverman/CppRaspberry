@@ -8,7 +8,7 @@ endif(NOT APP_NAME)
 set(CPP_RASPBERRY_INCLUDES
     ${CMAKE_CURRENT_LIST_DIR}/include)
 set(CPP_RASPBERRY_SOURCES
-    ${CMAKE_CURRENT_LIST_DIR}/src/raspberry_pi.cpp)
+    ${CMAKE_CURRENT_LIST_DIR}/src/raspberry-pi.cpp)
 set(CPP_RASPBERRY_LIBS "")
 
 # Add in interface specific stuff

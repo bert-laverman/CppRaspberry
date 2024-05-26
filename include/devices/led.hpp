@@ -4,7 +4,7 @@
 #include <pico/stdlib.h>
 
 
-namespace nl::rakis::raspberrypi::components {
+namespace nl::rakis::raspberrypi::devices {
 
 
 class Led {
@@ -56,4 +56,4 @@ public:
     }
 };
 
-} // namespace nl::rakis::raspberrypi::components
+} // namespace nl::rakis::raspberrypi::devices

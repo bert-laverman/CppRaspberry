@@ -5,7 +5,9 @@
 #error "This file is for the Pico with SPI enabled only!"
 #endif
 
-#include <interfaces/pico_spi.hpp>
+#include <pico/stdlib.h>
+
+#include <interfaces/pico-spi.hpp>
 
 using namespace nl::rakis::raspberrypi::interfaces;
 
@@ -26,19 +28,27 @@ PicoSPI::PicoSPI() : PicoSPI(+DefaultPin::SPI0_CS, +DefaultPin::SPI0_SCK, +Defau
 
 void PicoSPI::open()
 {
-    spi_init(interface_, 10*1000*1000);
+    if (initialized()) {
+        return;
+    }
+    spi_init(interface_, 5*1000*1000);
 
+    if (verbose()) {
+        printf("Initializing SPI interface with MOSI=%d, MISO=%d, CLK=%d, and CS=%d.\n", mosiPin_, misoPin_, sckPin_, csPin_);
+    }
     gpio_init(csPin_);
     gpio_set_dir(csPin_, GPIO_OUT);
 
     gpio_set_function(sckPin_, GPIO_FUNC_SPI);
     gpio_set_function(mosiPin_, GPIO_FUNC_SPI);
     gpio_set_function(misoPin_, GPIO_FUNC_SPI);
+
+    initialized(true);
 }
 
 void PicoSPI::close()
 {
-    //DONOTHING
+    if (verbose()) { printf("Closing SPI interface\n"); }
 }
 
 void PicoSPI::select()
@@ -57,6 +67,11 @@ void PicoSPI::deselect()
 
 void PicoSPI::writeAll(std::array<uint8_t, 2> const &value)
 {
+    if (verbose()) {
+        printf("Writing: %d times 0x%02x 0x%02x.\n", numModules(), value[0], value[1]);
+    }
+    open();
+
     select();
     for (unsigned module = 0; module < numModules(); ++module)
     {
@@ -67,6 +82,17 @@ void PicoSPI::writeAll(std::array<uint8_t, 2> const &value)
 
 void PicoSPI::writeAll(std::function<std::array<uint8_t, 2>(unsigned)> const &value)
 {
+    if (verbose()) {
+        printf("Writing:");
+        for (unsigned module = 0; module < numModules(); ++module)
+        {
+            auto v = value(module);
+            printf(" 0x%02x 0x%02x", v[0], v[1]);
+        }
+        printf("\n");
+    }
+    open();
+
     select();
     for (unsigned module = 0; module < numModules(); ++module)
     {

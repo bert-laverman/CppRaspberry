@@ -8,10 +8,11 @@
 
 #include <cstdint>
 
+#include <span>
 #include <array>
 #include <vector>
 
-#include <devices/spi_device.hpp>
+#include <devices/spi-device.hpp>
 
 namespace nl::rakis::raspberrypi::devices {
 
@@ -49,26 +50,6 @@ class MAX7219 {
 
 protected:
     inline std::vector<MAX7219Module>& buffer() { return buffer_; }
-
-    /**
-     * @brief Sends the cached brightness levels.
-     */
-    virtual void sendBrightness() = 0;
-
-    /**
-     * @brief Sends the cached scan limits.
-     */
-    virtual void sendScanLimit() = 0;
-
-    /**
-     * @brief Sends the cached decode modes.
-     */
-    virtual void sendDecodeMode() = 0;
-
-    /**
-     * @brief Sends the cached display data.
-     */
-    virtual void sendBuffer() = 0;
 
     inline void storeBrightness(unsigned module, uint8_t brightness) {
         buffer_[module].brightness = brightness;
@@ -291,7 +272,7 @@ public:
     /**
      * @brief Clears the display of all MAX7219 devices.
      */
-    void clear() {
+    virtual void clear() {
         for (auto& module : buffer()) {
             module.hasValue = false;
             module.value = 0;
@@ -306,7 +287,7 @@ public:
      * 
      * @param module The module number of the MAX7219 device.
      */
-    void clear(uint8_t module) {
+    virtual void clear(uint8_t module) {
         auto& buf = buffer() [module];
 
         buf.hasValue = false;
@@ -323,7 +304,7 @@ public:
      * @param module The module number of the MAX7219 device.
      * @param value The number to be displayed.
      */
-    void setNumber(uint8_t module, int32_t value) {
+    virtual void setNumber(uint8_t module, int32_t value) {
         auto& buf = buffer() [module];
         buf.hasValue = true;
         buf.value = value;
@@ -352,19 +333,53 @@ public:
     /**
      * @brief Reset the attached modules.
      */
-     virtual void reset() = 0;
+    virtual void reset() = 0;
+    /**
+     * @brief Sends the cached brightness levels.
+     */
+    virtual void sendBrightness() = 0;
+
+    /**
+     * @brief Sends the cached scan limits.
+     */
+    virtual void sendScanLimit() = 0;
+
+    /**
+     * @brief Sends the cached decode modes.
+     */
+    virtual void sendDecodeMode() = 0;
+
+    /**
+     * @brief Sends the cached display data.
+     */
+    virtual void sendBuffer() = 0;
+
 
     /**
      * @brief Sends the display data to the MAX7219 device.
      * 
      * This method sends the display data stored in the buffer to the MAX7219 device.
      */
-    void sendData() {
+    virtual void sendData() {
         if (isDirtyBrightness()) { sendBrightness(); }
         if (isDirtyScanLimit()) { sendScanLimit(); }
         if (isDirtyDecodeMode()) { sendDecodeMode(); }
 
         if (isDirtyBuffer()) { sendBuffer(); }
+    }
+
+    /**
+     * @brief Directly set the buffer's contents.
+     */
+    void setBuffer(uint8_t module, std::span<uint8_t> data) {
+        if (data.size() != MAX7219_DIGITS) {
+            return; // Ignore if we're passed the wrong number of bytes.
+        }
+        auto& buf = buffer()[module];
+        for (unsigned i = 0; i < MAX7219_DIGITS; i++) {
+            buf.buffer [i] = data [i];
+        }
+        setDirtyBuffer();
     }
 };
 

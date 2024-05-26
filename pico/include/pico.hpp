@@ -1,25 +1,24 @@
 #pragma once
-// Copyright 2023 by Bert Laverman, All rights reserved.
-// Created: 2021-09-11 14:59:47
-// Purpose: General Pico management code
+// Copyright 2023-2024 by Bert Laverman, All rights reserved.
+
 
 #include <iostream>
 
 #include <pico/stdlib.h>
 #include <pico/stdio.h>
 
-#include <raspberry_pi.hpp>
+#include <raspberry-pi.hpp>
 
 #if defined(HAVE_I2C)
 #include <hardware/i2c.h>
 
-#include <interfaces/pico_i2c.hpp>
+#include <interfaces/pico-i2c.hpp>
 #endif
 
 #if defined(HAVE_SPI)
 #include <hardware/spi.h>
 
-#include <interfaces/pico_spi.hpp>
+#include <interfaces/pico-spi.hpp>
 #endif
 
 namespace nl::rakis::raspberrypi {

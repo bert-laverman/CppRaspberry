@@ -10,8 +10,8 @@
 #include <functional>
 #include <iostream>
 
-#include <raspberry_pi.hpp>
-#include <devices/spi_device.hpp>
+#include <raspberry-pi.hpp>
+#include <devices/spi-device.hpp>
 
 using nl::rakis::raspberrypi::RaspberryPi;
 using nl::rakis::raspberrypi::devices::SPIDevice;
