@@ -1,0 +1,8 @@
+CppRaspberry
+Copyright 2023-2024 Bert Laverman. All Rights Reserved.
+
+The Initial Developer of these files is Bert Laverman
+
+Parts of this library may contain or reuse snippets of example code found on the Internet, especially on the
+Raspberry Pi forums and in the documentation of the PiGPIO library. The PiGPIO library site is marked as copyrighted,
+but the library sources themselves are marked as "unlicensed" and part of the public domain. Credit where credit is due.
