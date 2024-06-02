@@ -22,7 +22,15 @@
 
 #include <map>
 #include <span>
+#include <list>
+#include <tuple>
 #include <vector>
+
+#if defined(TARGET_PICO)
+#include <pico/stdlib.h>
+#else
+#include <format>
+#endif
 
 #include <interfaces/i2c.hpp>
 #include <protocols/protocol-driver.hpp>
@@ -34,15 +42,13 @@ namespace nl::rakis::raspberrypi::protocols {
 /**
  * @brief This class manages communication through I2C, using one bus for incoming, and another for outgoing messages.
  */
-template <typename I2COutImpl, typename I2CInImpl>
-class I2CProtocolDriver : public ProtocolDriver {
+template <typename I2COutImpl, typename I2CInImpl, typename QueueImpl>
+class I2CProtocolDriver : public ProtocolDriver<QueueImpl> {
     I2COutImpl& i2cOut_;
     I2CInImpl& i2cIn_;
 
-    std::vector<CommandHandler> handlers_;
-
 public:
-    I2CProtocolDriver(I2COutImpl& out, I2CInImpl& in) : i2cOut_(out), i2cIn_(in), handlers_(32) {};
+    I2CProtocolDriver(I2COutImpl& out, I2CInImpl& in) : i2cOut_(out), i2cIn_(in) {};
 
     virtual ~I2CProtocolDriver() {}
 
@@ -52,8 +58,6 @@ public:
     I2CProtocolDriver &operator=(I2CProtocolDriver &&) = delete;
 
 protected:
-    inline I2CInImpl& i2cIn() { return i2cIn_; }
-    inline I2COutImpl& i2cOut() { return i2cOut_; }
     /**
      * @brief Reset the I2C protocol driver. If operating in dual mode, set both in their correct modes.
      */
@@ -75,23 +79,10 @@ protected:
         return checksum;
     }
 
-    inline bool haveHandler(Command command) const {
-        unsigned index = toInt(command);
-        return (handlers_.size() > index) && handlers_[index].handler;
-    }
-    inline const CommandHandler& handler(Command command) const {
-        return handlers_.at(toInt(command));
-    }
-
 public:
 
-    void registerHandler(Command command, std::string description, MsgCallback handler) override {
-        unsigned index = toInt(command);
-        if (index >= handlers_.size()) {
-            handlers_.resize(index+1);
-        }
-        handlers_[index] = CommandHandler{ .command = command, .description = description, .handler = handler };
-    }
+    inline I2CInImpl& i2cIn() { return i2cIn_; }
+    inline I2COutImpl& i2cOut() { return i2cOut_; }
 
     void enableControllerMode() override {
         i2cOut_.switchToControllerMode();
@@ -101,14 +92,9 @@ public:
         i2cOut_.close();
     }
 
-    virtual void enableResponderMode(uint8_t address) override {
+    virtual void enableResponderMode(uint8_t address = GeneralCallAddress) override {
         i2cIn_.switchToResponderMode(address, [this](Command command, uint8_t sender, const std::span<uint8_t> data) {
-            unsigned index = toInt(command);
-            if ((handlers_.size() > index) && handlers_[index].handler) {
-                handlers_[index].handler(command, sender, data);
-            } else {
-                i2cIn_.log() << "No handler for command " << index << "\n";
-            }
+            this->pushIncoming(command, sender, data);
         });
     }
 
@@ -124,7 +110,7 @@ public:
         i2cIn_.close();
     }
 
-    bool sendMessage(uint8_t address, Command command, const std::span<uint8_t> msg) override {
+    bool sendMessage(Command command, uint8_t address, const std::span<uint8_t> msg) override {
         std::vector<uint8_t> data(MsgHeaderSize + msg.size(), 0x00);
         std::memcpy(data.data() + MsgHeaderSize, msg.data(), msg.size());
 
@@ -136,32 +122,20 @@ public:
         };
         std::memcpy(data.data(), &header, MsgHeaderSize);
 
+        if (i2cOut_.verbose()) {
+#if defined(TARGET_PICO)
+            printf("sendMessage(0x%02x, 0x%02x, [%d bytes payload, %d total message size])\n", address, toInt(command), msg.size(), data.size());
+#else
+            i2cOut_.log() << std::format("sendMessage(0x{:02x}, 0x{:02x}, [{} bytes payload, {} total message size])\n", address, toInt(command), msg.size(), data.size());
+#endif
+        }
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
         return i2cOut_.writeBytes(address, data);
 #pragma GCC diagnostic pop
     }
 
-    template <class Msg>
-    inline bool sendMessage(uint8_t address, Command command, Msg& msg) {
-        return sendMessage(address, command, std::span<uint8_t>(reinterpret_cast<uint8_t*>(&msg), sizeof(Msg)));
-    }
-
-    inline bool sendHello(uint8_t address, BoardId id)
-    {
-        return sendMessage(address, Command::Hello, std::span<uint8_t>(&((id.bytes)[0]), idSize));
-    }
-
-    inline bool sendHello(BoardId id)
-    {
-        return sendHello(0, id);
-    }
-
-    inline bool sendSetAddress(BoardId id, uint8_t address)
-    {
-        MsgSetAddress msg{ .boardId = id, .address = address };
-        return sendMessage(0x00, Command::SetAddress, msg);
-    }
 };
 
 } // namespace nl::rakis::raspberrypi::protocols

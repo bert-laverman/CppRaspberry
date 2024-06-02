@@ -17,19 +17,41 @@
 
 #include <pico/stdlib.h>
 
+#include <string>
+#include <functional>
+
 
 namespace nl::rakis::raspberrypi::devices {
+
+
+using ButtonCallback = std::function<void(void)>;
 
 class Button {
     uint pin_;
 
+    uint32_t lastTime_{ 0 };
+    uint32_t interval_{ 50 };
+
+    ButtonCallback onUp_;
+    ButtonCallback onDown_;
+
+    std::function<void(std::string)> log_;
+
+protected:
+    virtual void setup()/* = 0*/;
+
 public:
-    Button(uint pin) : pin_(pin) {
-        gpio_init(pin_);
-        gpio_set_dir(pin_, GPIO_IN);
-        gpio_pull_up(pin_);
-    }
+    Button(uint pin);
     virtual ~Button() = default;
+
+    Button(const Button&) = default;
+    Button(Button&&) = default;
+    Button& operator=(const Button&) = default;
+    Button& operator=(Button&&) = default;
+
+    inline void onUp(ButtonCallback cb) { onUp_ = cb; }
+    inline void onDown(ButtonCallback cb) { onDown_ = cb; }
+    inline void onLog(std::function<void(std::string)> log) { log_ = log; }
 };
 
 } // namespace nl::rakis::raspberrypi::devices

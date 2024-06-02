@@ -23,8 +23,3 @@ add_compile_definitions(HAVE_MAX7219)
 
 set(CPP_RASPBERRY_INCLUDES ${CPP_RASPBERRY_INCLUDES}
     ${CMAKE_CURRENT_LIST_DIR}/include)
-
-set (CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES}
-    ${CMAKE_CURRENT_LIST_DIR}/src/devices/local-max7219.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/devices/remote-max7219.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/util/max7219-state.cpp)

@@ -124,6 +124,7 @@ union BoardId {
 struct MsgHello {
     BoardId boardId;
 };
+inline constexpr unsigned sizeMsgHello = idSize;
 
 
 /**
@@ -133,6 +134,7 @@ struct MsgSetAddress {
     BoardId boardId;
     uint8_t address;
 };
+inline constexpr unsigned sizeMsgSetAddress = idSize + sizeof(uint8_t);
 
 
 /**

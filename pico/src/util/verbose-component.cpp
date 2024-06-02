@@ -1,4 +1,3 @@
-#pragma once
 /*
  * Copyright (c) 2024 by Bert Laverman. All Rights Reserved.
  *
@@ -16,24 +15,12 @@
  */
 
 
-#if !defined(TARGET_PICO)
-#error "The PicoI2CProtocolDriver runs only on the Raspberry Pi Pico"
-#endif
-#if !defined(HAVE_I2C)
-#error "The PicoI2CProtocolDriver requires I2C support"
-#endif
-
-#include <pico/sync.h>
+#include <util/verbose-component.hpp>
 
 
-#include <util/pico-message-queue.hpp>
-#include <interfaces/pico-i2c.hpp>
-#include <protocols/messages.hpp>
-#include <protocols/i2c-protocol-driver.hpp>
+using namespace nl::rakis::raspberrypi::util;
 
 
-namespace nl::rakis::raspberrypi::protocols {
-
-using PicoI2CProtocolDriver = I2CProtocolDriver<interfaces::PicoI2C, interfaces::PicoI2C, util::PicoMessageQueue>;
-
-} // namespace nl::rakis::raspberrypi::protocols
+std::ostream& VerboseComponent::log() {
+    return std::cout;
+}

@@ -56,7 +56,7 @@ public:
     virtual ~PICO() =default;
 
     static PICO& instance(bool verbose =false) {
-        static PICO instance{ verbose };
+        static PICO instance( verbose );
         return instance;
     }
 

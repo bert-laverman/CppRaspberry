@@ -21,6 +21,7 @@ endif(NOT APP_NAME)
 set(CPP_RASPBERRY_INCLUDES
     ${CMAKE_CURRENT_LIST_DIR}/include)
 set(CPP_RASPBERRY_SOURCES
+    ${CMAKE_CURRENT_LIST_DIR}/src/devices/button.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/raspberry-pi.cpp)
 set(CPP_RASPBERRY_LIBS "")
 

@@ -20,6 +20,7 @@ set(CPP_RASPBERRY_INCLUDES ${CPP_RASPBERRY_INCLUDES}
     ${CMAKE_CURRENT_LIST_DIR}/include)
 
 set(CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES}
+    ${CMAKE_CURRENT_LIST_DIR}/src/util/verbose-component.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/pico.cpp)
 
 # Add in interface specific stuff for the Pico

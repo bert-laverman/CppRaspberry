@@ -169,9 +169,9 @@ static void i2c_cb(i2c_inst_t* i2c, PicoI2C& picoI2C) {
     }
     if (status & I2C_IC_INTR_STAT_R_GEN_CALL_BITS) {
         auto gcStatus = i2c->hw->clr_gen_call;
-        if (picoI2C.verbose()) {
+        // if (picoI2C.verbose()) {
             printf("Clearing General Call on channel %d. (0x0%08lx)\n", picoI2C.channel(), gcStatus);
-        }
+        // }
         if (status & I2C_IC_INTR_STAT_R_RX_FULL_BITS) {
             MsgHeader header;
             if (!i2cReadByte(i2c, header.command) ||

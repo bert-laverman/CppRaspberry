@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+#include <vector>
+
 
 #include <protocols/protocol-driver.hpp>
 #include <protocols/max7219-messages.hpp>
@@ -116,9 +118,10 @@ public:
         }
     }
 
-    inline void setHandler(ProtocolDriver& driver) {
+    template <typename DriverImpl>
+    inline void registerAt(DriverImpl& driver) {
         driver.registerHandler(Command::Max7219, "Handle MAX7219 messages",
-                               [this]([[maybe_unused]] Command command, [[maybe_unused]] uint8_t sender, const std::span<uint8_t> data) {
+                               [this]([[maybe_unused]] Command command, [[maybe_unused]] uint8_t sender, const std::vector<uint8_t>& data) {
             if (data.size() != sizeof(MsgMax7219)) return;
             const MsgMax7219* msg = reinterpret_cast<const MsgMax7219*>(data.data());
             handle(*msg);

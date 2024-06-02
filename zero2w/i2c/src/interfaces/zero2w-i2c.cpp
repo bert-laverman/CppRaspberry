@@ -127,7 +127,9 @@ bool Zero2WI2C_i2cdev::writeBytes(uint8_t address, std::span<uint8_t> data)
 {
     open();
 
-    log() << std::format("Going to send {} bytes to 0x{:02x}.\n", data.size(), address);
+    if (verbose()) {
+        log() << std::format("Going to send {} bytes to 0x{:02x}.\n", data.size(), address);
+    }
     struct i2c_msg msg{ address, 0, static_cast<__u16>(data.size()), data.data() };
     struct i2c_rdwr_ioctl_data msgs{ &msg, 1 };
 
@@ -136,7 +138,9 @@ bool Zero2WI2C_i2cdev::writeBytes(uint8_t address, std::span<uint8_t> data)
         return true;
     }
     if (result != 1) {
-        log() << std::format("Failed to write {} bytes to 0x{:02x}. Errno={}.\n", data.size(), address, errno);
+        if (verbose()) {
+            log() << std::format("Failed to write {} bytes to 0x{:02x}. Errno={}.\n", data.size(), address, errno);
+        }
         return false;
     }
     return true;
@@ -180,15 +184,19 @@ Zero2WI2C_pigpio::~Zero2WI2C_pigpio()
 void Zero2WI2C_pigpio::open()
 {
     if (initialized()) {
-        log() << "open(): Already initialized\n";
+        if (verbose()) {
+            log() << "open(): Already initialized\n";
+        }
         return;
     }
-    // if (verbose()) {
+    if (verbose()) {
         log() << "Opening I2C channel\n";
-    // }
+    }
     channel(pigpio_start(nullptr, nullptr));
     if (channel() < 0) {
-        log() << std::format("Failed to open I2C channel: {}\n", channel());
+        if (verbose()) {
+            log() << std::format("Failed to open I2C channel: {}\n", channel());
+        }
         return;
     }
     initialized(true);
@@ -213,12 +221,14 @@ void Zero2WI2C_pigpio::processBytes(std::span<uint8_t> data)
 void Zero2WI2C_pigpio::listen(Zero2WI2C_pigpio& bus)
 {
     if (!bus.initialized() || !bus.listening()) {
-        std::cerr << std::format("listen(): Not initialized ({}) or not listening ({})\n", !bus.initialized(), !bus.listening());
+        if (bus.verbose()) {
+            std::cerr << std::format("listen(): Not initialized ({}) or not listening ({})\n", !bus.initialized(), !bus.listening());
+        }
         return;
     }
-    // if (verbose()) {
+    if (bus.verbose()) {
         std::cerr << std::format("Listening on channel {} and address 0x{:02x}\n", bus.channel(), bus.listenAddress());
-    // }
+    }
     bsc_xfer_t xfer;
     std::memset(&xfer, 0, sizeof(xfer));
     xfer.control = Control(bus.listenAddress(), PIGPIO_Control::EnableTransmit | PIGPIO_Control::EnableReceive | PIGPIO_Control::EnableI2C | PIGPIO_Control::EnableBS1);
@@ -226,7 +236,9 @@ void Zero2WI2C_pigpio::listen(Zero2WI2C_pigpio& bus)
     while (bus.listening()) {
         int status = bsc_i2c(bus.channel(), bus.listenAddress(), &xfer);
         if (status < 0) {
-            std::cerr << std::format("bsc_i2c() returned error {}\n", status);
+            if (bus.verbose()) {
+                std::cerr << std::format("bsc_i2c() returned error {}\n", status);
+            }
         } else if ((status > 0) && (xfer.rxCnt > 0)) {
             bus.processBytes(std::span<uint8_t>(reinterpret_cast<uint8_t*>(xfer.rxBuf), xfer.rxCnt));
         }
@@ -234,30 +246,34 @@ void Zero2WI2C_pigpio::listen(Zero2WI2C_pigpio& bus)
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
-    std::cerr << "Listener thread stopped\n";
+    if (bus.verbose()) {
+        std::cerr << "Listener thread stopped\n";
+    }
 }
 
 void Zero2WI2C_pigpio::startListening()
 {
     if (!initialized() || listening()) {
-        log() << std::format("startListening(): Not initialized ({}), or already listening, so ok. ({})\n", !initialized(), listening());
+        if (verbose()) {
+            log() << std::format("startListening(): Not initialized ({}), or already listening, so ok. ({})\n", !initialized(), listening());
+        }
         return;
     }
-    // if (verbose()) {
+    if (verbose()) {
         log() << std::format("Start listening on channel {} and address 0x{:02x}\n", channel(), listenAddress());
-    // }
+    }
     bsc_xfer_t xfer;
 
     std::memset(&xfer, 0, sizeof(xfer));
     xfer.control = Control(listenAddress(), PIGPIO_Control::EnableTransmit | PIGPIO_Control::EnableReceive | PIGPIO_Control::EnableI2C | PIGPIO_Control::EnableBS1);
 
     int status = bsc_i2c(channel(), listenAddress(), &xfer);
-    if (status < 0) {
-        log() << std::format("Initial call failed with {}\n", status & 0x0000ffff);
-        // return;
-    }
-    if (status > 0) {
-        log() << std::format("Initial call returned 0x{:04x}\n", status);
+    if (verbose()) {
+        if (status < 0) {
+            log() << std::format("Initial call failed with {}\n", status & 0x0000ffff);
+        } else if (status > 0) {
+            log() << std::format("Initial call returned 0x{:04x}\n", status);
+        }
     }
     if (xfer.rxCnt > 0) {
         processBytes(std::span<uint8_t>(reinterpret_cast<uint8_t*>(xfer.rxBuf), xfer.rxCnt));
@@ -269,26 +285,31 @@ void Zero2WI2C_pigpio::startListening()
 void Zero2WI2C_pigpio::stopListening()
 {
     if (!initialized() || !listening()) {
-        log() << std::format("stopListening(): Not initialized ({}) or not listening, so ok. ({})\n", !initialized(), !listening());
+        if (verbose()) {
+            log() << std::format("stopListening(): Not initialized ({}) or not listening, so ok. ({})\n", !initialized(), !listening());
+        }
         return;
     }
-    // if (verbose()) {
+    if (verbose()) {
         log() << std::format("Stop listening on channel {} and address 0x{:02x}\n", channel(), listenAddress());
-    // }
+    }
     listening(false);
     listener_.join();
-    log() << "Listener thread joined\n";
-
+    if (verbose()) {
+        log() << "Listener thread joined\n";
+    }
     bsc_xfer_t xfer;
     std::memset(&xfer, 0, sizeof(xfer));
 
     int status = bsc_i2c(channel(), 0, &xfer);
-    if (status < 0) {
-        log() << std::format("bsc_i2c() returned error {}\n", status);
-    } else if (status > 0) {
-        log() << std::format("bsc_i2c() returned 0x{:04x}\n", status);
+    if (verbose()) {
+        if (status < 0) {
+            log() << std::format("bsc_i2c() returned error {}\n", status);
+        } else if (status > 0) {
+            log() << std::format("bsc_i2c() returned 0x{:04x}\n", status);
+        }
+        std::cerr << "Told pigpiod to stop listening\n";
     }
-    std::cerr << "Told pigpiod to stop listening\n";
 }
 
 void Zero2WI2C_pigpio::close() {
@@ -298,9 +319,9 @@ void Zero2WI2C_pigpio::close() {
     stopListening();
 
     if (channel() >= 0) {
-        // if (verbose()) {
+        if (verbose()) {
             log() << std::format("Closing channel {}\n", channel());
-        // }
+        }
         pigpio_stop(channel());
         channel(-1);
     }
@@ -310,7 +331,9 @@ void Zero2WI2C_pigpio::close() {
 bool Zero2WI2C_pigpio::writeBytes(uint8_t address, std::span<uint8_t> data)
 {
     if (data.empty()) {
-        log() << "writeBytes(): No data to write\n";
+        if (verbose()) {
+            log() << "writeBytes(): No data to write\n";
+        }
         return true;
     }
     int handle{ -1 };
@@ -318,7 +341,14 @@ bool Zero2WI2C_pigpio::writeBytes(uint8_t address, std::span<uint8_t> data)
     try {
         constexpr int bus = 1;
         handle = i2c_open(channel(), bus, address, 0);
-        if (handle < 0) {
+        if (handle >= 0) {
+            auto result = i2c_write_device(channel(), handle, reinterpret_cast<char*>(data.data()), data.size());
+            if (result >= 0) {
+                success = true;
+            } else if (verbose()) {
+                log() << std::format("Failed to write {} bytes to address 0x{:02x}\n", data.size(), address);
+            }
+        } else if (verbose()) {
             switch (handle) {
             case PI_BAD_I2C_ADDR:
                 log() << std::format("Bad I2C address 0x{:02x}\n", address);
@@ -345,16 +375,11 @@ bool Zero2WI2C_pigpio::writeBytes(uint8_t address, std::span<uint8_t> data)
                 log() << std::format("Failed to open I2C handle for address 0x{:02x}\n", address);
                 break;
             }
-        } else {
-            auto result = i2c_write_device(channel(), handle, reinterpret_cast<char*>(data.data()), data.size());
-            if (result < 0) {
-                log() << std::format("Failed to write {} bytes to address 0x{:02x}\n", data.size(), address);
-            } else {
-                success = true;
-            }
         }
     } catch (...) {
-        log() << "Exception caught in writeBytes()\n";
+        if (verbose()) {
+            log() << "Exception caught in writeBytes()\n";
+        }
     }
     if (handle >= 0) {
         i2c_close(channel(), handle);
@@ -388,7 +413,9 @@ bool Zero2WI2C_pigpio::readMessage(MsgHeader &header, std::vector<uint8_t> &data
 
 void Zero2WI2C_pigpio::switchToControllerMode()
 {
-    log() << "Controller mode not available via pigpio\n";
+    if (verbose()) {
+        log() << "Controller mode not available via pigpio\n";
+    }
     throw std::runtime_error("Controller mode not available via pigpio");
 }
 
@@ -397,16 +424,20 @@ void Zero2WI2C_pigpio::switchToResponderMode(uint8_t address, protocols::MsgCall
     open();
 
     if (!initialized() || listening()) {
-        log() << std::format("Not initialized ({}) or already in Responder mode. ({})\n", !initialized(), listening());
+        if (verbose()) {
+            log() << std::format("Not initialized ({}) or already in Responder mode. ({})\n", !initialized(), listening());
+        }
         return;
     }
     if (listening()) {
         if (address == listenAddress()) {
-            log() << std::format("Already in Responder mode on address 0x{:02x}.\n", address);
+            if (verbose()) {
+                log() << std::format("Already in Responder mode on address 0x{:02x}.\n", address);
+            }
             return;
         }
         stopListening();
-    } else /*if (verbose())*/ {
+    } else if (verbose()) {
         log() << std::format("Switching to Responder mode on address 0x{:02x}.\n", address);
     }
     listenAddress(address);
