@@ -15,10 +15,15 @@
  * limitations under the License.
  */
 
-#include <vector>
-#include <iostream>
+#include <map>
+#include <string>
+#include <memory>
 
 #include <cstdint>
+
+#include <util/verbose-component.hpp>
+#include <interfaces/gpio.hpp>
+
 
 namespace nl::rakis::raspberrypi::interfaces {
     class I2C;
@@ -27,79 +32,92 @@ namespace nl::rakis::raspberrypi::interfaces {
 
 namespace nl::rakis::raspberrypi {
 
-template <class Logger
-#if defined(HAVE_I2C)
-        , class I2CImpl
-#endif
-#if defined(HAVE_SPI)
-        , class SPIImpl
-#endif
->
-class RaspberryPi {
+class RaspberryPi : public util::VerboseComponent {
 
 #if defined(HAVE_I2C)
-    std::vector<I2CImpl> i2c_;
+    std::map<std::string, std::shared_ptr<interfaces::I2C>> i2c_;
 #endif
 #if defined(HAVE_SPI)
-    std::vector<SPIImpl> spi_;
-#endif
-
-    bool verbose_{false};
-
-protected:
-#if defined(HAVE_I2C)
-    inline auto i2cInterfaces() { return i2c_; }
-#endif
-#if defined(HAVE_SPI)
-    inline auto spiInterfaces() { return spi_; }
+    std::map<std::string, std::shared_ptr<interfaces::SPI>> spi_;
 #endif
 
 public:
     RaspberryPi() = default;
-    virtual ~RaspberryPi() = default;
-    RaspberryPi(RaspberryPi const&) = default;
-    RaspberryPi(RaspberryPi&&) = default;
-    RaspberryPi& operator=(RaspberryPi const&) = default;
-    RaspberryPi& operator=(RaspberryPi&&) = default;
+    ~RaspberryPi() = default;
 
-    RaspberryPi(bool verbose) : verbose_(verbose) {}
+    // There can be only one, so no copying or moving.
+    RaspberryPi(RaspberryPi const&) = delete;
+    RaspberryPi(RaspberryPi&&) = delete;
+    RaspberryPi& operator=(RaspberryPi const&) = delete;
+    RaspberryPi& operator=(RaspberryPi&&) = delete;
 
-    virtual std::ostream& log() const = 0;
+    /**
+     * @brief Return the instance.
+     */
+    static RaspberryPi& instance();
 
-    inline bool verbose() const { return verbose_; }
-    inline void verbose(bool verbose) { verbose_ = verbose; }
 
-    virtual void sleepMs(unsigned ms) const = 0;
+    /**
+     * @brief Sleep for (at least) the given number of milliseconds.
+     */
+    void sleepMs(unsigned ms) const;
+
+    /**
+     * @brief Return a reference to the (local) GPIO interface
+     */
+    static interfaces::GPIO& gpio();
+
+    operator interfaces::GPIO&() { return gpio(); }
 
 #if defined(HAVE_I2C)
 
-    inline I2CImpl& i2c(unsigned num = 0) { return i2c_[num]; }
+    /**
+     * @brief Return the I2C interface with the given name.
+     */
+    std::shared_ptr<interfaces::I2C> i2c(std::string name) {
+        auto it = i2c_.find(name);
+        if (it != i2c_.end()) return it->second;
+        return std::shared_ptr<interfaces::I2C>();
+    }
 
-    inline auto addInterface(I2CImpl const& i2c) {
-        auto num = i2c_.size();
-        i2c_.push_back(i2c);
-        return num;
+
+    /**
+     * @brief Add the given I2C interface.
+     */
+    auto addI2C(std::string name, std::shared_ptr<interfaces::I2C> i2c) {
+        i2c_ [name] = i2c;
+        return i2c_ [name];
     }
-    inline auto addInterface(I2CImpl && i2c) {
-        auto num = i2c_.size();
-        i2c_.push_back(std::move(i2c));
-        return num;
+
+    /**
+     * @brief Construct and add an I2C interface.
+     */
+    template <typename... Args>
+    auto addI2C(std::string name, Args&&... args) {
+        i2c_ [name] = std::make_shared(std::forward<Args>(args)...);
+        return i2c_ [name];
     }
+
+    /**
+     * @brief Check if we have an I2C interface at the given pins.
+     */
+    bool haveI2C(unsigned sdaPin, unsigned sclPin);
 #endif
 
 #if defined(HAVE_SPI)
-    inline SPIImpl& spi(unsigned num = 0) { return spi_[num]; }
 
-    inline auto addInterface(SPIImpl const& spi) {
-        auto num = spi_.size();
-        spi_.push_back(spi);
-        return num;
+    inline std::shared_ptr<interfaces::SPI> spi(std::string name) {
+        auto it = spi_.find(name);
+        if (it != spi_.end()) return it->second;
+        return std::shared_ptr<interfaces::SPI>();
     }
-    inline auto addInterface(SPIImpl && spi) {
-        auto num = spi_.size();
-        spi_.push_back(std::move(spi));
-        return num;
+
+    template <typename... Args>
+    inline auto addSPI(std::string name, Args&&... args) {
+        spi_ [name] = std::make_shared(std::forward<Args>(args)...);
+        return spi_ [name];
     }
+
 #endif
 
 };

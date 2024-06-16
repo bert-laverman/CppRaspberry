@@ -145,9 +145,11 @@ public:
 
     template <class Msg>
     inline bool sendMessage(Command command, uint8_t address, Msg& msg) {
-        return sendMessage(command, address, std::span<uint8_t>(reinterpret_cast<uint8_t*>(&msg), sizeof(Msg)));
+        return sendMessage(command, address, std::span<uint8_t>(const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(&msg)), sizeof(Msg)));
     }
-
+    inline bool sendMessage(Command command, uint8_t address, const std::vector<uint8_t>& payload) {
+        return sendMessage(command, address, std::span<uint8_t>(const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(payload.data())), payload.size()));
+    }
 
     inline bool haveIncoming() { return incoming_.haveMessages(); }
     inline void pushIncoming(protocols::Command command, uint8_t address, std::span<uint8_t> data) {
@@ -167,7 +169,7 @@ public:
     inline void processOutgoing() {
         outgoing_.processAll([this](Command command, uint8_t address, const std::vector<uint8_t>& data) {
             if (!sendMessage(command, address, data) && verbose()) {
-                log() << "Failed to send " << toInt(command) << " to " << address << ", no response.\n";
+                log() << "Failed to send " << static_cast<int>(toInt(command)) << " to " << static_cast<int>(address) << ", no response.\n";
             }
         });
     }

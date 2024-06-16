@@ -21,7 +21,7 @@
 #include <functional>
 
 
-namespace nl::rakis::raspberrypi::devices {
+namespace nl::rakis::raspberrypi::components {
 
 
 using ButtonCallback = std::function<void(void)>;
@@ -54,4 +54,4 @@ public:
     inline void onLog(std::function<void(std::string)> log) { log_ = log; }
 };
 
-} // namespace nl::rakis::raspberrypi::devices
+} // namespace nl::rakis::raspberrypi::components

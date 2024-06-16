@@ -199,6 +199,7 @@ enum class RgbLedSubTypes : uint8_t {
     CommonCathode       = 0x02,
 };
 
+// Led commands
 enum class LedCommand : uint8_t {
     Off                 = 0x00,
     On                  = 0x01,
@@ -206,9 +207,29 @@ enum class LedCommand : uint8_t {
     Pulse               = 0x03,
 };
 
+/**
+ * @brief A message to control Leds.
+ */
 struct MsgLed {
     uint8_t deviceId;
     LedCommand command;
+};
+
+// Buttons
+
+enum class ButtonEvent : uint8_t {
+    Off                 = 0x00,
+    Down                = 0x01,
+    Up                  = 0x02,
+    Clicked             = 0x03,
+};
+inline constexpr uint8_t toInt(ButtonEvent value) {
+    return static_cast<uint8_t>(value);
+}
+
+struct MsgButton {
+    uint8_t deviceId;
+    ButtonEvent event;
 };
 
 } // namespace nl::rakis::raspberrypi::protocols

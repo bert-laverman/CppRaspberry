@@ -21,6 +21,7 @@ set(CPP_RASPBERRY_INCLUDES ${CPP_RASPBERRY_INCLUDES}
 
 set(CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES}
 ${CMAKE_CURRENT_LIST_DIR}/src/util/verbose-component.cpp
+${CMAKE_CURRENT_LIST_DIR}/src/interfaces/zero2w-gpio.cpp
 ${CMAKE_CURRENT_LIST_DIR}/src/zero2w.cpp)
 
 # Add in interface specific stuff for the Pico

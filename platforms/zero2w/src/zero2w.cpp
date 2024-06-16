@@ -14,7 +14,29 @@
  * limitations under the License.
  */
 
-#include <pico.hpp>
+
+#include <cstdint>
+#include <chrono>
+#include <thread>
+
+#include <raspberry-pi.hpp>
+#include <interfaces/gpio.hpp>
 
 using namespace nl::rakis::raspberrypi;
 
+
+interfaces::GPIO& RaspberryPi::gpio() {
+    static interfaces::GPIO gpio_;
+
+    return gpio_;
+}
+
+RaspberryPi& RaspberryPi::instance() {
+    static RaspberryPi instance;
+
+    return instance;
+}
+
+void RaspberryPi::sleepMs(unsigned ms) const {
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+};

@@ -114,21 +114,21 @@ public:
         std::vector<uint8_t> data(MsgHeaderSize + msg.size(), 0x00);
         std::memcpy(data.data() + MsgHeaderSize, msg.data(), msg.size());
 
-        MsgHeader header{
-            static_cast<uint8_t>(command),
-            static_cast<uint8_t>(msg.size()),
-            i2cIn_.listenAddress(),
-            computeChecksum(msg)
-        };
-        std::memcpy(data.data(), &header, MsgHeaderSize);
-
-        if (i2cOut_.verbose()) {
+        if (this->verbose()) {
 #if defined(TARGET_PICO)
             printf("sendMessage(0x%02x, 0x%02x, [%d bytes payload, %d total message size])\n", address, toInt(command), msg.size(), data.size());
 #else
-            i2cOut_.log() << std::format("sendMessage(0x{:02x}, 0x{:02x}, [{} bytes payload, {} total message size])\n", address, toInt(command), msg.size(), data.size());
+            this->log(std::format("sendMessage(0x{:02x}, 0x{:02x}, [{} bytes payload, {} total message size])", address, toInt(command), msg.size(), data.size()));
 #endif
         }
+
+        MsgHeader header{
+            static_cast<uint8_t>(command),
+            static_cast<uint8_t>(msg.size()),
+            listenAddress(),
+            computeChecksum(msg)
+        };
+        std::memcpy(data.data(), &header, MsgHeaderSize);
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
