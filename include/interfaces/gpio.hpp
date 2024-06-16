@@ -47,8 +47,8 @@ enum class GPIOMode {
  */
 class GPIO : public util::VerboseComponent{
 public:
-    GPIO() = default;
-    ~GPIO() = default;
+    GPIO();
+    ~GPIO();
 
     // There can be only one, so no copying or moving.
     GPIO(const GPIO&) = delete;

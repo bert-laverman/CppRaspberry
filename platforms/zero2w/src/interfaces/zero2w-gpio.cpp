@@ -20,6 +20,7 @@ extern "C" {
 #include <pigpiod_if2.h>
 }
 
+#include <atomic>
 #include <format>
 #include <string>
 #include <exception>
@@ -102,9 +103,28 @@ static void openChannel()
 {
     if (gpioChannel < 0) {
         if ((gpioChannel = pigpio_start(nullptr, nullptr)) < 0) {
+            std::cerr << "Failed to open the pigpiod channel.\n";
             throw std::runtime_error("Failed to open channel to pigpiod.\n");
         }
     }
+}
+
+static void closeChannel()
+{
+    if (gpioChannel >= 0) {
+        pigpio_stop(gpioChannel);
+        gpioChannel = -1;
+    }
+}
+
+GPIO::GPIO()
+{
+    openChannel();
+}
+
+GPIO::~GPIO()
+{
+    closeChannel();
 }
 
 void GPIO::init(unsigned pin, GPIOMode m)
@@ -125,12 +145,10 @@ void GPIO::init(unsigned pin, GPIOMode m)
     log(std::format("Claiming pin {}.", pin));
 
     mode_[pin] = m;
-    openChannel();
 }
 
 void GPIO::setForOutput(unsigned pin)
 {
-    openChannel();
     auto result = set_mode(gpioChannel, pin, PI_OUTPUT);
     if (result < 0) {
         log(std::format("Unable to set pin {} for output (error={}).", pin, result));
@@ -139,7 +157,6 @@ void GPIO::setForOutput(unsigned pin)
 
 void GPIO::setForInput(unsigned pin)
 {
-    openChannel();
     auto result = set_mode(gpioChannel, pin, PI_INPUT);
     if (result < 0) {
         log(std::format("Unable to set pin {} for input (error={}).", pin, result));
@@ -148,7 +165,6 @@ void GPIO::setForInput(unsigned pin)
 
 void GPIO::setPullUp(unsigned pin)
 {
-    openChannel();
     auto result = set_pull_up_down(gpioChannel, pin, PI_PUD_UP);
     if (result < 0) {
         log(std::format("Unable to set pin {} for pull-up (error={}).", pin, result));
@@ -157,7 +173,6 @@ void GPIO::setPullUp(unsigned pin)
 
 void GPIO::setPullDown(unsigned pin)
 {
-    openChannel();
     auto result = set_pull_up_down(gpioChannel, pin, PI_PUD_DOWN);
     if (result < 0) {
         log(std::format("Unable to set pin {} for pull-up (error={}).", pin, result));
@@ -165,46 +180,55 @@ void GPIO::setPullDown(unsigned pin)
 }
 
 
-static std::array<GPIO::GPIOHandler, NumGPIO> gpioHighHandlers;
-static std::array<GPIO::GPIOHandler, NumGPIO> gpioLowHandlers;
 static std::array<GPIO::GPIOHandler, NumGPIO> gpioRiseHandlers;
 static std::array<GPIO::GPIOHandler, NumGPIO> gpioFallHandlers;
 
-[[maybe_unused]]
-static void gpioIRQ(uint gpio, [[maybe_unused]] uint32_t events) {
+static void gpioIRQ([[maybe_unused]] int channel, unsigned gpio, unsigned level, uint32_t tick) {
     if (gpio >= NumGPIO) {
         return;
     }
 
-    // if (((events & GPIO_IRQ_LEVEL_LOW) != 0) && gpioLowHandlers[gpio]) {
-    //     gpioLowHandlers[gpio](gpio, events);
-    // } else if (((events & GPIO_IRQ_LEVEL_HIGH) != 0) && gpioHighHandlers[gpio]) {
-    //     gpioHighHandlers[gpio](gpio, events);
-    // } else if (((events & GPIO_IRQ_EDGE_FALL) != 0) && gpioFallHandlers[gpio]) {
-    //     gpioFallHandlers[gpio](gpio, events);
-    // } else if (((events & GPIO_IRQ_EDGE_RISE) != 0) && gpioRiseHandlers[gpio]) {
-    //     gpioRiseHandlers[gpio](gpio, events);
-    // }
+    if ((level == 0) && gpioFallHandlers[gpio]) {
+        gpioFallHandlers[gpio](gpio, tick);
+    } else if ((level != 0) && gpioRiseHandlers[gpio]) {
+        gpioRiseHandlers[gpio](gpio, tick);
+    }
 }
+
+static std::array<std::atomic_flag, NumGPIO> callbackRegistered;
+
+static void registerCallback(unsigned pin)
+{
+    static std::atomic_flag firstRun = ATOMIC_FLAG_INIT;
+
+    if (!std::atomic_flag_test_and_set(&firstRun)) {
+        for (unsigned i = 0; i < NumGPIO; i++) {
+            callbackRegistered[i].clear();
+        }
+    }
+    if (!std::atomic_flag_test_and_set(&callbackRegistered[pin])) {
+        auto result = callback(gpioChannel, pin, EITHER_EDGE, &gpioIRQ);
+        if (result < 0) {
+            std::cerr << std::format("Failed to register the callback for pin {}.\n", pin);
+            throw std::runtime_error("Failed to register callback.");
+        }
+    }
+}
+
 
 void GPIO::addRiseHandler(unsigned pin, GPIO::GPIOHandler handler)
 {
     if (!validPin(pin)) {
         throw new std::runtime_error("Bad pin number.");
     }
-    gpioRiseHandlers[pin] = handler;
+    registerCallback(pin);
 
-    // gpio_set_irq_enabled_with_callback(pin, irqMask(pin), true, &gpioIRQ);
+    gpioRiseHandlers[pin] = handler;
 }
 
-void GPIO::addHighHandler(unsigned pin, GPIO::GPIOHandler handler)
+void GPIO::addHighHandler([[maybe_unused]] unsigned pin, [[maybe_unused]] GPIO::GPIOHandler handler)
 {
-    if (!validPin(pin)) {
-        throw new std::runtime_error("Bad pin number.");
-    }
-    gpioHighHandlers[pin] = handler;
-
-    // gpio_set_irq_enabled_with_callback(pin, irqMask(pin), true, &gpioIRQ);
+    throw new std::runtime_error("High handlers are not implemented.");
 }
 
 void GPIO::addFallHandler(unsigned pin, GPIO::GPIOHandler handler)
@@ -212,19 +236,14 @@ void GPIO::addFallHandler(unsigned pin, GPIO::GPIOHandler handler)
     if (!validPin(pin)) {
         throw new std::runtime_error("Bad pin number.");
     }
-    gpioFallHandlers[pin] = handler;
+    registerCallback(pin);
 
-    // gpio_set_irq_enabled_with_callback(pin, irqMask(pin), true, &gpioIRQ);
+    gpioFallHandlers[pin] = handler;
 }
 
-void GPIO::addLowHandler(unsigned pin, GPIO::GPIOHandler handler)
+void GPIO::addLowHandler([[maybe_unused]] unsigned pin, [[maybe_unused]] GPIO::GPIOHandler handler)
 {
-    if (!validPin(pin)) {
-        throw new std::runtime_error("Bad pin number.");
-    }
-    gpioLowHandlers[pin] = handler;
-
-    // gpio_set_irq_enabled_with_callback(pin, irqMask(pin), true, &gpioIRQ);
+    throw new std::runtime_error("High handlers are not implemented.");
 }
 
 void GPIO::set(unsigned pin, bool value)

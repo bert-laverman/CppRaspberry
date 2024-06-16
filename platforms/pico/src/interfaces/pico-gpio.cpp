@@ -84,6 +84,15 @@ inline static GPIOMode mode(unsigned pin) {
     return (pin >= NumGPIO) ? GPIOMode::Unavailable : mode_[pin];
 }
 
+GPIO::GPIO()
+{
+}
+
+GPIO::~GPIO()
+{
+}
+
+
 bool GPIO::direct() const noexcept
 {
     return true;

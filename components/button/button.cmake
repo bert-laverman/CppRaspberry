@@ -13,9 +13,9 @@
 # limitations under the License.
 
 
-message(STATUS "Adding files for LED support")
+message(STATUS "Adding files for BUTTON support")
 
-add_compile_definitions(HAVE_LED)
+add_compile_definitions(HAVE_BUTTON)
 
 set(CPP_RASPBERRY_INCLUDES ${CPP_RASPBERRY_INCLUDES}
     ${CMAKE_CURRENT_LIST_DIR}/include)
