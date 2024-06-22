@@ -18,7 +18,7 @@
 #include <string>
 
 
-namespace nl::rakis::raspberrypi::components {
+namespace nl::rakis::raspberrypi::util {
 
 
 /**
@@ -37,6 +37,6 @@ public:
 
     inline const std::string& name() const { return name_; }
     inline void name(std::string name) { name_ = name; }
-}
+};
 
-} // namespace nl::rakis::raspberrypi::components
+} // namespace nl::rakis::raspberrypi::util

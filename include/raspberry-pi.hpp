@@ -80,21 +80,11 @@ public:
         return std::shared_ptr<interfaces::I2C>();
     }
 
-
     /**
      * @brief Add the given I2C interface.
      */
     auto addI2C(std::string name, std::shared_ptr<interfaces::I2C> i2c) {
         i2c_ [name] = i2c;
-        return i2c_ [name];
-    }
-
-    /**
-     * @brief Construct and add an I2C interface.
-     */
-    template <typename... Args>
-    auto addI2C(std::string name, Args&&... args) {
-        i2c_ [name] = std::make_shared(std::forward<Args>(args)...);
         return i2c_ [name];
     }
 
@@ -112,12 +102,16 @@ public:
         return std::shared_ptr<interfaces::SPI>();
     }
 
-    template <typename... Args>
-    inline auto addSPI(std::string name, Args&&... args) {
-        spi_ [name] = std::make_shared(std::forward<Args>(args)...);
+    auto addSPI(std::string name, std::shared_ptr<interfaces::SPI> spi) {
+        spi_ [name] = spi;
         return spi_ [name];
     }
 
+    template <typename S, typename... Args>
+    auto addSPI(std::string name, Args&&... args) {
+        spi_ [name] = std::make_shared<S>(std::forward<Args>(args)...);
+        return spi_ [name];
+    }
 #endif
 
 };

@@ -46,17 +46,17 @@ public:
     /**
      * @brief Returns if this component should actually produce logging.
      */
-    inline bool verbose() const { return verbose_; }
+    bool verbose() const noexcept { return verbose_; }
 
     /**
      * @brief Set if this component should actually produce logging.
      */
-    inline void verbose(bool verb) { verbose_ = verb; }
+    void verbose(bool verb) noexcept { verbose_ = verb; }
 
     /**
      * @brief Conveniece method to send the provided string to the log, if in verbose mode.
      */
-    inline void log(std::string s, bool addNewline =true) {
+    void log(std::string s, bool addNewline =true) {
         if (verbose()) {
             if (addNewline) {
                 log() << s << std::endl;

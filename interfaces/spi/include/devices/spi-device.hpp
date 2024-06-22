@@ -16,6 +16,13 @@
  */
 
 
+#include <span>
+#include <memory>
+
+
+#include <util/verbose-component.hpp>
+
+
 namespace nl::rakis::raspberrypi::interfaces {
     class SPI;
 } // namespace nl::rakis::raspberrypi::interfaces
@@ -23,18 +30,34 @@ namespace nl::rakis::raspberrypi::interfaces {
 
 namespace nl::rakis::raspberrypi::devices {
 
-class SPIDevice
+
+/**
+ * @brief This represents a device connected to a SPI interface, possibly daisy-chained.
+ */
+class SPIDevice : public util::VerboseComponent
 {
-    interfaces::SPI& spi_;
+    std::shared_ptr<interfaces::SPI> spi_;
+    unsigned numDevices_{ 1 };
+
+protected:
+    virtual void numDevicesChanged() = 0;
 
 public:
-    SPIDevice(interfaces::SPI& spi) : spi_(spi) {}
+    SPIDevice() {}
+
+    SPIDevice(const SPIDevice&) = delete;
+    SPIDevice(SPIDevice&&) = default;
+    SPIDevice& operator=(const SPIDevice&) = delete;
+    SPIDevice& operator=(SPIDevice&&) = default;
 
     virtual ~SPIDevice() = default;
 
-    inline interfaces::SPI& interface() const { return spi_; }
+    std::shared_ptr<interfaces::SPI> interface() const { return spi_; }
+    void interface(std::shared_ptr<interfaces::SPI> spi) { spi_ = spi; }
 
-    virtual void numModulesChanged(unsigned num_modules) = 0;
+    unsigned numDevices() const noexcept { return numDevices_; }
+    void numDevices(unsigned num);
+
 };
 
 } // namespace nl::rakis::raspberrypi::devices

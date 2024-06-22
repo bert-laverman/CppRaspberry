@@ -36,7 +36,7 @@ namespace nl::rakis::raspberrypi::devices {
 class LocalMAX7219 : public MAX7219, public SPIDevice {
 
     // Constants for MAX7219 commands
-    constexpr static const uint8_t CMD_NOOP = 0x00;
+    constexpr static const uint8_t CMD_NOOP   = 0x00;
     constexpr static const uint8_t CMD_DIGIT0 = 0x01;
     constexpr static const uint8_t CMD_DIGIT1 = 0x02;
     constexpr static const uint8_t CMD_DIGIT2 = 0x03;
@@ -54,43 +54,61 @@ class LocalMAX7219 : public MAX7219, public SPIDevice {
     // Buffer for NOOP command
     constexpr static std::array<uint8_t, 2> BUF_NOOP{CMD_NOOP, 0};
 
+    virtual void numDevicesChanged() override {
+        MAX7219::numDevicesChanged(numDevices());
+    }
+
 public:
     /**
      * @brief Constructs a MAX7219 object.
      * 
      * @param spi The SPI interface to communicate with the device.
      */
-    LocalMAX7219(interfaces::SPI& spi) : MAX7219(), SPIDevice(spi) {
-        interface().device(this);
+    LocalMAX7219() = default;
 
-        init();
+    LocalMAX7219(const LocalMAX7219&) = default;
+    LocalMAX7219(LocalMAX7219&&) = default;
+    LocalMAX7219& operator=(const LocalMAX7219&) = default;
+    LocalMAX7219& operator=(LocalMAX7219&&) = default;
+
+    virtual ~LocalMAX7219() {}
+
+
+    /**
+     * @brief Send a single command to all modules.
+     */
+    void sendAll(uint8_t cmd, uint8_t par =0) {
+        const unsigned size{ numDevices() * 2 };
+        std::vector<uint8_t> buf(size, par);
+
+        for (unsigned i{0}; i < size; i += 2) {
+            buf [i] = cmd;
+        }
+        interface()->write(buf);
     }
 
     /**
-     * @brief Destructor for MAX7219 object.
+     * @brief Send a command to one module, CMD_NOOP to all the others.
      */
-    virtual ~LocalMAX7219() = default;
+    void sendOne(unsigned mod, uint8_t cmd, uint8_t par =0) {
+        const unsigned size{ numDevices() * 2 };
+        std::vector<uint8_t> buf(size, par);
 
-protected:
-    /**
-     * @brief Callback function called when the number of modules changes.
-     * 
-     * @param num_modules The new number of modules.
-     */
-    void numModulesChanged(unsigned num_modules) override {
-        buffer().resize(num_modules, { .brightness = 7, .scanLimit = 7, .decodeMode = 0, .buffer = { 0 } });
+        for (unsigned i{0}; i < size; i += 2) {
+            buf [i] = (i == mod*2) ? cmd : CMD_NOOP;
+        }
+        interface()->write(buf);
     }
 
-    /**
-     * @brief Initializes the MAX7219 device.
-     * 
-     * This method is called during object construction to initialize the device.
-     */
-    void init() {
-        numModulesChanged(interface().numModules());
-    }
+    void sendEach(std::function<void(unsigned mod, uint8_t& cmd, uint8_t& par)> getData) {
+        const unsigned size{ numDevices() * 2 };
+        std::vector<uint8_t> buf(size, 0);
 
-public:
+        for (unsigned i{0},mod{0}; i < size; i += 2, mod++) {
+            getData(mod, buf[i], buf[i+1]);
+        }
+        interface()->write(buf);
+    }
     /**
      * @brief Shuts down all MAX7219 devices.
      * 
@@ -98,8 +116,7 @@ public:
      * which turns off all the LEDs and stops the display operation.
      */
     void shutdown() override {
-        std::array<uint8_t, 2> buf{CMD_SHUTDOWN, 0};
-        interface().writeAll(buf);
+        sendAll(CMD_SHUTDOWN);
     }
 
     /**
@@ -108,10 +125,7 @@ public:
      * @param pos The position of the MAX7219 device.
      */
     void shutdown(uint8_t pos) override {
-        std::array<uint8_t, 2> buf{CMD_SHUTDOWN, 0};
-        interface().writeAll([pos, buf](unsigned module) {
-            return (pos == module) ? buf : BUF_NOOP;
-        });
+        sendOne(pos, CMD_SHUTDOWN);
     }
 
     /**
@@ -121,8 +135,7 @@ public:
      * It sets the shutdown mode to normal operation.
      */
     void startup() override {
-        std::array<uint8_t, 2> buf{CMD_SHUTDOWN, 1};
-        interface().writeAll(buf);
+        sendAll(CMD_SHUTDOWN, 1);
     }
 
     /**
@@ -131,10 +144,7 @@ public:
      * @param pos The position of the MAX7219 device.
      */
     void startup(uint8_t pos) override {
-        std::array<uint8_t, 2> buf{CMD_SHUTDOWN, 1};
-        interface().writeAll([pos, buf](unsigned module) {
-            return (pos == module) ? buf : BUF_NOOP;
-        });
+        sendOne(pos, CMD_SHUTDOWN, 1);
     }
 
     /**
@@ -143,8 +153,7 @@ public:
      * @param value The value to set for the display test. Non-zero value turns on the test, while zero turns it off.
      */
     void displayTest(uint8_t value) override {
-        std::array<uint8_t, 2> buf{CMD_DISPLAYTEST, value};
-        interface().writeAll(buf);
+        sendAll(CMD_DISPLAYTEST, value);
     }
 
     /**
@@ -154,10 +163,7 @@ public:
      * @param value The display test value to set (0-1).
      */
     void displayTest(uint8_t pos, uint8_t value) override {
-        std::array<uint8_t, 2> buf{CMD_DISPLAYTEST, value};
-        interface().writeAll([pos, buf](unsigned module) {
-            return (pos == module) ? buf : BUF_NOOP;
-        });
+        sendOne(pos, CMD_DISPLAYTEST, value);
     }
 
     /**
@@ -179,8 +185,9 @@ public:
      * @brief Sends the cached brightness levels to all modules.
      */
     void sendBrightness() override {
-        interface().writeAll([this](unsigned module) {
-            return std::array<uint8_t, 2>{ CMD_BRIGHTNESS, buffer()[module].brightness };
+        sendEach([this](unsigned mod, uint8_t& cmd, uint8_t& par) {
+            cmd = CMD_BRIGHTNESS;
+            par = buffer()[mod].brightness;
         });
         resetDirtyBrightness();
     }
@@ -189,8 +196,9 @@ public:
      * @brief Sends the cached scan limits to all modules.
      */
     void sendScanLimit() override {
-        interface().writeAll([this](unsigned module) {
-            return std::array<uint8_t, 2>{ CMD_SCANLIMIT, buffer()[module].scanLimit };
+        sendEach([this](unsigned mod, uint8_t& cmd, uint8_t& par) {
+            cmd = CMD_SCANLIMIT;
+            par = buffer()[mod].scanLimit;
         });
         resetDirtyScanLimit();
     }
@@ -199,8 +207,9 @@ public:
      * @brief Sends the cached decode modes to all modules.
      */
     void sendDecodeMode() override {
-        interface().writeAll([this](unsigned module) {
-            return std::array<uint8_t, 2>{ CMD_DECODEMODE, buffer()[module].decodeMode };
+        sendEach([this](unsigned mod, uint8_t& cmd, uint8_t& par) {
+            cmd = CMD_DECODEMODE;
+            par = buffer()[mod].decodeMode;
         });
         resetDirtyDecodeMode();
     }
@@ -213,8 +222,9 @@ public:
     void sendBuffer() override {
         if (isDirtyBuffer()) {
             for (unsigned pos = 0; pos < 8; ++pos) {
-                interface().writeAll([pos,this](unsigned module){
-                    return std::array<uint8_t, 2>{uint8_t(CMD_DIGIT0 + pos), buffer()[module].buffer[pos]};
+                sendEach([this, pos](unsigned mod, uint8_t& cmd, uint8_t& par) {
+                    cmd = CMD_DIGIT0 + pos;
+                    par = buffer()[mod].buffer[pos];
                 });
             }
             resetDirtyBuffer();

@@ -80,6 +80,10 @@ protected:
         setDirtyDecodeMode();
     }
 
+    void numDevicesChanged(unsigned num) {
+        buffer_.resize(num);
+    }
+
 public:
     // Constructing and destructing is no issue.
     MAX7219() = default;

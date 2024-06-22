@@ -19,6 +19,7 @@ set(CPP_RASPBERRY_INCLUDES ${CPP_RASPBERRY_INCLUDES}
     ${CMAKE_CURRENT_LIST_DIR}/include)
 
 set(CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES}
-    ${CMAKE_CURRENT_LIST_DIR}/src/interfaces/zero2w-spi.cpp)
+    ${CMAKE_CURRENT_LIST_DIR}/src/interfaces/pigpiod-spi.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/interfaces/spidev-spi.cpp)
 
 set(CPP_RASPBERRY_LIBS ${CPP_RASPBERRY_LIBS} i2c pigpiod_if2)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 by Bert Laverman. All Rights Reserved.
+ * Copyright (c) 2024 by Bert Laverman. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,4 +15,22 @@
  */
 
 
-#include <raspberry-pi.hpp>
+#include <interfaces/spi.hpp>
+
+
+using namespace nl::rakis::raspberrypi::interfaces;
+
+
+SPI::SPI()
+{
+
+}
+
+SPI::~SPI()
+{
+
+}
+
+bool SPI::selected() const noexcept {
+    return false;
+}
