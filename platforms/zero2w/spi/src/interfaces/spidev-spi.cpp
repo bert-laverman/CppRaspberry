@@ -37,14 +37,42 @@ bool SPIDevSPI::selected() const noexcept {
 void SPIDevSPI::open()
 {
     if (fd_ < 0) {
-        if (verbose()) {
-            log() << "Opening SPI interface: " << interface_ << std::endl;
-        }
+        log(std::format("Opening SPI device '{}'.", interface_));
         fd_ = ::open(interface_.c_str(), O_RDWR);
         if (fd_ < 0) {
             log() << "Failed to open SPI interface: " << strerror(errno) << std::endl;
             throw std::runtime_error("Failed to open SPI interface");
         }
+
+        uint32_t mode{ 0 };
+        log("Setting device to mode 0");
+        check(ioctl(fd_, SPI_IOC_WR_MODE32, &mode));
+        log("... checking");
+        check(ioctl(fd_, SPI_IOC_RD_MODE32, &mode));
+        if (mode != 0) {
+            log("SPIdev does not support mode 0.");
+        }
+
+        uint8_t bits{ 8 };
+        log("Setting bit-per-word to 8.");
+        check(ioctl(fd_, SPI_IOC_WR_BITS_PER_WORD, &bits));
+        log("... checking");
+        check(ioctl(fd_, SPI_IOC_RD_BITS_PER_WORD, &bits));
+        if (bits != 8) {
+            log("SPIdev does not support 8-bits.");
+        }
+
+        const unsigned int speed{ baudRate() };
+        log(std::format("Setting speed to {} Hz ({} kHz)", baudRate(), baudRate() / 1000));
+        check(ioctl(fd_, SPI_IOC_WR_MAX_SPEED_HZ, &speed));
+        log("... checking");
+        check(ioctl(fd_, SPI_IOC_RD_MAX_SPEED_HZ, &speed));
+        if (speed != baudRate()) {
+            log(std::format("SPIdev does not support requested speed {} Hz ({} kHz)", baudRate(), baudRate() / 1000));
+        }
+
+        // log("Setting word byte-order.");
+        // ioctl(fd_, SPI_IOC_WR_LSB_FIRST, 0);
     }
 }
 
@@ -73,39 +101,27 @@ void SPIDevSPI::deselect()
     }
 }
 
-void SPIDevSPI::write(std::span<uint8_t> value)
-{
-    writeBlocking(value);
-}
-
-void SPIDevSPI::writeBlocking(std::span<uint8_t> data)
+void SPIDevSPI::write(std::span<uint8_t> data)
 {
     if (fd_ < 0) {
         open();
     }
     const size_t bufSize{/*1 + */data.size()};
-    std::vector<uint8_t> tx_buf;
     std::vector<uint8_t> rx_buf;
 
-    tx_buf.resize(bufSize);
-    tx_buf.assign(bufSize, 0);
     rx_buf.resize(bufSize);
     rx_buf.assign(bufSize, 0);
 
-    // tx_buf[0] = 0x40;
-    for (unsigned i = 0; i < data.size(); ++i)
-    {
-        tx_buf[/*1 + */i] = data [i];
-    }
 
     if (verbose()) {
-        log() << std::format("Writing {} ({}) bytes: ", tx_buf.size(), bufSize);
-        for (auto const &byte : tx_buf)
+        log() << std::format("Writing {} bytes: ", data.size());
+        for (auto const &byte : data)
             log() << std::format("0x{:02x} ", byte);
         log() << std::endl;
     }
+    // ::write(fd_, data.data(), data.size());
     struct spi_ioc_transfer tr{
-        .tx_buf = (unsigned long)(tx_buf.data()),
+        .tx_buf = (unsigned long)(data.data()),
         .rx_buf = (unsigned long)(rx_buf.data()),
         .len = bufSize,
         .speed_hz = baudRate(),
@@ -117,5 +133,5 @@ void SPIDevSPI::writeBlocking(std::span<uint8_t> data)
         .word_delay_usecs= 0,
         .pad = 0,
         };
-    ioctl(fd_, SPI_IOC_MESSAGE(1), &tr);
+    check(ioctl(fd_, SPI_IOC_MESSAGE(1), &tr));
 }

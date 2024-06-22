@@ -64,7 +64,9 @@ public:
      * 
      * @param spi The SPI interface to communicate with the device.
      */
-    LocalMAX7219() = default;
+    LocalMAX7219() {
+        MAX7219::numDevicesChanged(numDevices());   // Make sure everyone agrees
+    }
 
     LocalMAX7219(const LocalMAX7219&) = default;
     LocalMAX7219(LocalMAX7219&&) = default;
@@ -73,6 +75,8 @@ public:
 
     virtual ~LocalMAX7219() {}
 
+
+protected:
 
     /**
      * @brief Send a single command to all modules.
@@ -109,6 +113,9 @@ public:
         }
         interface()->write(buf);
     }
+
+public:
+
     /**
      * @brief Shuts down all MAX7219 devices.
      * 

@@ -15,11 +15,10 @@
  * limitations under the License.
  */
 
-#include <array>
 #include <functional>
 #include <string>
 #include <cstring>
-#include <iostream>
+#include <format>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -50,7 +49,12 @@ class SPIDevSPI : public SPI
 
 protected:
 
-    void writeBlocking(std::span<uint8_t> data);
+    int check(int result) {
+        if (result < 0) {
+            log(std::format("Call failed with result {}. Errno={}.", result, errno));
+        }
+        return result;
+    }
 
     void validate();
 
