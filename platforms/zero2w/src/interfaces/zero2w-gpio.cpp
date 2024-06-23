@@ -96,6 +96,11 @@ bool GPIO::available(unsigned pin) const noexcept
     return mode(pin) == GPIOMode::Unused;
 }
 
+void GPIO::claim(unsigned pin, GPIOMode m)
+{
+    mode_[pin] = m;
+}
+
 
 static int gpioChannel{ -1 };
 

@@ -40,11 +40,15 @@ namespace nl::rakis::raspberrypi::interfaces {
  */
 class SPI : public util::VerboseComponent, public util::NamedComponent, public std::enable_shared_from_this<SPI>
 {
-    bool is4Pin_;
-    unsigned csPin_;
-    unsigned sclkPin_;
-    unsigned mosiPin_;
-    unsigned misoPin_;
+public:
+    static constexpr int NO_PIN{ -1 };
+
+private:
+    bool is4Pin_{ false };
+    int csPin_{ NO_PIN };
+    int sclkPin_{ NO_PIN };
+    int mosiPin_{ NO_PIN };
+    int misoPin_{ NO_PIN };
 
     unsigned int baudRate_{ 5*1000*1000 };
 
@@ -78,7 +82,7 @@ public:
     /**
      * @brief Return the GPIO pin used for the Chip-Select (sometimes Chip Enable or CE) line.
      */
-    unsigned csPin() const noexcept { return csPin_; }
+    int csPin() const noexcept { return csPin_; }
 
     /**
      * @brief Set the GPIO pin to be used for the clock signal. Setting the value forces a close.
@@ -88,7 +92,7 @@ public:
     /**
      * @brief Return the GPIO pin used for the clock signal.
      */
-    unsigned sclkPin() const noexcept { return sclkPin_; }
+    int sclkPin() const noexcept { return sclkPin_; }
 
     /**
      * @brief Set the GPIO pin used for the Master-Out-Slave-In (sometimes Data-Out or TX) line. Setting the value forces a close.
@@ -98,7 +102,7 @@ public:
     /**
      * @brief Return the GPIO pin used for the Master-Out-Slave-In (sometimes Data-Out or TX) line.
      */
-    unsigned mosiPin() const noexcept { return mosiPin_; }
+    int mosiPin() const noexcept { return mosiPin_; }
 
     /**
      * @brief Set if the connection is a 4-pin SPI interface, in which case a  full-duplex connection is used. Setting the value forces a close.
@@ -117,7 +121,7 @@ public:
     /**
      * @brief Return the GPIO pin used for the Master-In-Slave-Out (sometimes Data-In or RX) line.
      */
-    unsigned misoPin() const noexcept { return misoPin_; }
+    int misoPin() const noexcept { return misoPin_; }
 
     /**
      * @brief Set the BAUD rate for this connection. Setting the value forces a close.

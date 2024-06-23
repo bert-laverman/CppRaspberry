@@ -32,9 +32,9 @@ enum class GPIOMode {
     UART,                   // Serial communications
     I2C,                    // I2C communications
     PWM,                    // PWM (Pulse Width Modulation) digital output
-    SIO,                    // Software controlled I/O
-    PIO0,                   // PIO-0 controlled I/O (Pico)
-    PIO1,                   // PIO-1 controlled I/O
+    SIO,                    // Software controlled I/O (default)
+    PIO0,                   // PIO-0 controlled I/O (Pico only)
+    PIO1,                   // PIO-1 controlled I/O (Pico only)
     GPCK,                   // Clock
     USB,                    // USB communications
     Unused     = 0x0f,
@@ -45,7 +45,7 @@ enum class GPIOMode {
 /**
  * @brief Class for GPIO interfaces.
  */
-class GPIO : public util::VerboseComponent{
+class GPIO : public util::VerboseComponent {
 public:
     GPIO();
     ~GPIO();
@@ -83,6 +83,16 @@ public:
     bool validPin(unsigned pin) const noexcept;
 
     /**
+     * @brief Mark a pin as in use, but don't actually do anything with it.
+     */
+    void claim(unsigned pin, GPIOMode mode = GPIOMode::SIO);
+
+    /**
+     * @brief Release the claim on a pin, without any other actions.
+     */
+    void release(unsigned pin) { claim(pin, GPIOMode::Unused); }
+
+    /**
      * @brief Claim a pin and indicate what is will be used for. Default mode is Software controlled I/O. Set it to GPIOMode::Unused to release.
      */
     void init(unsigned pin, GPIOMode mode = GPIOMode::SIO);
@@ -90,7 +100,7 @@ public:
     /**
      * @brief Release a pin.
      */
-    inline void deinit(unsigned pin) { init(pin, GPIOMode::Unused); }
+    void deinit(unsigned pin) { init(pin, GPIOMode::Unused); }
 
     /**
      * @brief Set the given pin as used for output.

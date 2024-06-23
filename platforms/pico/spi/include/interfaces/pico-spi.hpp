@@ -29,63 +29,40 @@
 namespace nl::rakis::raspberrypi::interfaces
 {
 
-    enum class DefaultPin : unsigned
-    {
-        SPI0_MISO = 16,
-        SPI0_CS = 17,
-        SPI0_SCK = 18,
-        SPI0_MOSI = 19
-    };
 
-    inline consteval unsigned operator+(DefaultPin pin)
-    {
-        return unsigned(pin);
-    };
+class PicoSPI : public SPI
+{
+    bool initialized_{ false };
+    int busNr_;
+    spi_inst_t *interface_;
 
-    class PicoSPI : public virtual SPI
-    {
-        bool initialized_{ false };
-        spi_inst_t *interface_;
+public:
+    PicoSPI(int busNr, unsigned csPin, unsigned sclkPin, unsigned mosiPin, unsigned misoPin);
 
-        unsigned csPin_;
-        unsigned sckPin_;
-        unsigned mosiPin_;
-        unsigned misoPin_;
+    PicoSPI();
 
-    public:
-        PicoSPI(spi_inst_t *interface, unsigned csPin, unsigned sckPin, unsigned mosiPin, unsigned misoPin);
+    PicoSPI(const PicoSPI &) = default;
+    PicoSPI(PicoSPI &&) = default;
+    PicoSPI &operator=(const PicoSPI &) = default;
+    PicoSPI &operator=(PicoSPI &&) = default;
 
-        PicoSPI(unsigned csPin, unsigned sckPin, unsigned mosiPin, unsigned misoPin);
+    virtual ~PicoSPI() = default;
 
-        PicoSPI();
+    bool initialized() const { return initialized_; }
+    void initialized(bool init) { initialized_ = init; }
 
-        PicoSPI(const PicoSPI &) = default;
-        PicoSPI(PicoSPI &&) = default;
-        PicoSPI &operator=(const PicoSPI &) = default;
-        PicoSPI &operator=(PicoSPI &&) = default;
+    virtual operator bool() const noexcept override { return initialized(); }
 
-        virtual ~PicoSPI() = default;
+    virtual void open() override;
 
-    protected:
-        virtual std::ostream &log() {
-            return std::cout;
-        }
+    virtual void close() override;
 
-        inline bool initialized() const { return initialized_; }
-        inline void initialized(bool init) { initialized_ = init; }
+    virtual void select() override;
 
-    public:
-        virtual void open() override;
+    virtual void deselect() override;
 
-        virtual void close() override;
+    virtual void write(std::span<uint8_t> data) override;
 
-        virtual void select() override;
-
-        virtual void deselect() override;
-
-        virtual void writeAll(std::array<uint8_t, 2> const &value) override;
-
-        virtual void writeAll(std::function<std::array<uint8_t, 2>(unsigned)> const &value) override;
-    };
+};
 
 } // namespace nl::rakis::raspberrypi::interfaces

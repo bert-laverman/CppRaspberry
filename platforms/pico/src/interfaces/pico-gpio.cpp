@@ -27,7 +27,7 @@
 using namespace nl::rakis::raspberrypi::interfaces;
 
 
-static constexpr unsigned int NumGPIO{ 30 };
+static constexpr unsigned NumGPIO{ 30 };
 
 static std::array<GPIOMode, NumGPIO> mode_{{
     // Left side, as viewed from above
@@ -118,6 +118,11 @@ bool GPIO::available(unsigned pin) const noexcept
     return mode(pin) == GPIOMode::Unused;
 }
 
+void GPIO::claim(unsigned pin, GPIOMode m)
+{
+    mode_[pin] = m;
+}
+
 void GPIO::init(unsigned pin, GPIOMode m)
 {
     if (m == GPIOMode::Unused) {
@@ -125,7 +130,7 @@ void GPIO::init(unsigned pin, GPIOMode m)
             if (verbose()) {
                 log() << "Releasing pin " << pin << ".\n";
             }
-            mode_[pin] = m;
+            release(pin);
             gpio_deinit(pin);
         } else if (verbose()) {
             log() << "Releasing pin " << pin << ", but it already was unused.\n";
@@ -141,7 +146,7 @@ void GPIO::init(unsigned pin, GPIOMode m)
     if (verbose()) {
         log() << "Initializing pin " << pin << ".\n";
     }
-    mode_[pin] = m;
+    claim(pin, m);
     gpio_init(pin);
     gpio_set_function(pin, static_cast<gpio_function>(m));
 }

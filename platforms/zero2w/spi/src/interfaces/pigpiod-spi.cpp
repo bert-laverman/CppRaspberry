@@ -24,16 +24,11 @@ extern "C" {
 #include <pigpiod_if2.h>
 }
 
+#include <raspberry-pi.hpp>
 #include <interfaces/pigpiod-spi.hpp>
 
 using namespace nl::rakis::raspberrypi::interfaces;
 
-
-
-void PigpiodSPI::validate()
-{
-
-}
 
 bool PigpiodSPI::selected() const noexcept {
     return false;
@@ -41,6 +36,81 @@ bool PigpiodSPI::selected() const noexcept {
 
 void PigpiodSPI::open()
 {
+    auto& gpio = RaspberryPi::gpio();
+    switch (busNr_) {
+    case 0:
+        switch (csNr_) {
+        case 0:
+            csPin(8);
+            break;
+        case 1:
+            csPin(7);
+            break;
+        default:
+            log(std::format("Non-standard CS line {} for bus {}.", csNr_, busNr_));
+            break;
+        }
+
+        sclkPin(11);
+        mosiPin(10);
+        if (is4Pin()) {
+            misoPin(9);
+        }
+        break;
+
+    case 1:
+        switch (csNr_) {
+        case 0:
+            csPin(18);
+            break;
+        case 1:
+            csPin(17);
+            break;
+        case 2:
+            csPin(16);
+            break;
+        default:
+            log(std::format("Non-standard CS line {} for bus {}.", csNr_, busNr_));
+            break;
+        }
+
+        sclkPin(21);
+        mosiPin(20);
+        if (is4Pin()) {
+            misoPin(19);
+        }
+        break;
+
+    default:
+        log(std::format("Non-standard bus nr {}.", busNr_));
+        break;
+    }
+
+    // Claim Chip-select
+    if (csPin() == NO_PIN) {
+        throw new std::runtime_error(std::format("No CS pin set for SPI bus {}, cs line {}", busNr_, csNr_));
+    }
+    gpio.claim(csPin());
+
+    // Claim Clock
+    if (sclkPin() == NO_PIN) {
+        throw new std::runtime_error(std::format("No SCLK pin set for SPI bus {}", busNr_));
+    }
+    gpio.claim(sclkPin(), GPIOMode::SPI);
+
+    // Claim MOSI
+    if (mosiPin() == NO_PIN) {
+        throw new std::runtime_error(std::format("No MOSI pin set for SPI bus {}", busNr_));
+    }
+    gpio.claim(mosiPin(), GPIOMode::SPI);
+    if (is4Pin()) {
+        // Claim MISO
+        if (misoPin() == NO_PIN) {
+            throw new std::runtime_error(std::format("No MISO pin set for SPI bus {}", busNr_));
+        }
+        gpio.claim(misoPin(), GPIOMode::SPI);
+    }
+
     if (channel_ < 0) {
         log("Opening a channel to pigpiod.");
         channel_ =  pigpio_start(nullptr, nullptr);
@@ -113,11 +183,6 @@ void PigpiodSPI::deselect()
 
 void PigpiodSPI::write(std::span<uint8_t> data)
 {
-    writeBlocking(data);
-}
-
-void PigpiodSPI::writeBlocking(std::span<uint8_t> data)
-{
     if (fd_ < 0) {
         open();
     }
@@ -145,5 +210,4 @@ void PigpiodSPI::writeBlocking(std::span<uint8_t> data)
             break;
         }
     }
-    //std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }

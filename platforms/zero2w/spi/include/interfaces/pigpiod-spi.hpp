@@ -37,27 +37,17 @@ namespace nl::rakis::raspberrypi::interfaces
     */
 class PigpiodSPI : public SPI
 {
-    int busNr_;
-    int csNr_;
+    int busNr_{ -1 };
+    int csNr_{ -1 };
 
     std::string interface_;
 
-    int fd_{ -1 };
     int channel_{ -1 };
-
-protected:
-
-    void writeBlocking(std::span<uint8_t> data);
-
-    void validate();
+    int fd_{ -1 };
 
 public:
-    PigpiodSPI(int busNr)
-        : busNr_(busNr)
-    {
-        validate();
-    }
-    PigpiodSPI() : PigpiodSPI(0) {}
+    PigpiodSPI(int busNr, int csNr =0) : busNr_(busNr), csNr_(csNr) {}
+    PigpiodSPI() : PigpiodSPI(0, 0) {}
 
     PigpiodSPI(PigpiodSPI const &) = default;
     PigpiodSPI(PigpiodSPI &&) = default;

@@ -21,41 +21,53 @@
 
 #include <pico/stdlib.h>
 
+#include <raspberry-pi.hpp>
 #include <interfaces/pico-spi.hpp>
+
 
 using namespace nl::rakis::raspberrypi::interfaces;
 
 
-PicoSPI::PicoSPI(spi_inst_t *interface, unsigned csPin, unsigned sckPin, unsigned mosiPin, unsigned misoPin)
-    : interface_(interface), csPin_(csPin), sckPin_(sckPin), mosiPin_(mosiPin), misoPin_(misoPin)
+static std::array<spi_inst_t*, 2> default_spi{{ spi0, spi1 }};
+
+
+PicoSPI::PicoSPI(int busNr, unsigned cs, unsigned sclk, unsigned mosi, unsigned miso)
+    : busNr_(busNr), interface_(default_spi[busNr_])
 {
-    open();
+    csPin(cs);
+    sclkPin(sclk);
+    mosiPin(mosi);
+    misoPin(miso);
 }
 
-PicoSPI::PicoSPI(unsigned csPin, unsigned sckPin, unsigned mosiPin, unsigned misoPin) : PicoSPI(spi0, csPin, sckPin, mosiPin, misoPin)
+
+PicoSPI::PicoSPI() : PicoSPI(PICO_DEFAULT_SPI, PICO_DEFAULT_SPI_CSN_PIN, PICO_DEFAULT_SPI_SCK_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_RX_PIN)
 {
 }
 
-PicoSPI::PicoSPI() : PicoSPI(+DefaultPin::SPI0_CS, +DefaultPin::SPI0_SCK, +DefaultPin::SPI0_MOSI, +DefaultPin::SPI0_MISO)
-{
-}
 
 void PicoSPI::open()
 {
     if (initialized()) {
         return;
     }
-    spi_init(interface_, 5*1000*1000);
 
     if (verbose()) {
-        printf("Initializing SPI interface with MOSI=%d, MISO=%d, CLK=%d, and CS=%d.\n", mosiPin_, misoPin_, sckPin_, csPin_);
+        printf("Claiming pins for SPI bus %d: MOSI=%d, MISO=%d, CLK=%d, and CS=%d.\n", busNr_, mosiPin(), misoPin(), sclkPin(), csPin());
     }
-    gpio_init(csPin_);
-    gpio_set_dir(csPin_, GPIO_OUT);
+    auto& gpio = RaspberryPi::gpio();
+    gpio.init(csPin());
+    gpio.setForOutput(csPin());
+    // gpio.pullUp(csPin());
 
-    gpio_set_function(sckPin_, GPIO_FUNC_SPI);
-    gpio_set_function(mosiPin_, GPIO_FUNC_SPI);
-    gpio_set_function(misoPin_, GPIO_FUNC_SPI);
+    gpio.init(sclkPin(), GPIOMode::SPI);
+    gpio.init(mosiPin(), GPIOMode::SPI);
+    gpio.init(misoPin(), GPIOMode::SPI);
+
+    if (verbose()) {
+        printf("Initializing SPI interface %d at %d BAUD.\n", busNr_, baudRate());
+    }
+    spi_init(interface_, baudRate());
 
     initialized(true);
 }
@@ -67,50 +79,28 @@ void PicoSPI::close()
 
 void PicoSPI::select()
 {
+    open();
+
     asm volatile("nop \n nop \n nop");
-    gpio_put(csPin_, 0);
+    RaspberryPi::gpio().set(csPin(), false);
     asm volatile("nop \n nop \n nop");
 }
 
 void PicoSPI::deselect()
 {
     asm volatile("nop \n nop \n nop");
-    gpio_put(csPin_, 1);
+    RaspberryPi::gpio().set(csPin(), true);
     asm volatile("nop \n nop \n nop");
 }
 
-void PicoSPI::writeAll(std::array<uint8_t, 2> const &value)
+void PicoSPI::write(std::span<uint8_t> data)
 {
-    if (verbose()) {
-        printf("Writing: %d times 0x%02x 0x%02x.\n", numModules(), value[0], value[1]);
-    }
     open();
 
-    select();
-    for (unsigned module = 0; module < numModules(); ++module)
-    {
-        spi_write_blocking(interface_, value.data(), 2);
-    }
-    deselect();
-}
-
-void PicoSPI::writeAll(std::function<std::array<uint8_t, 2>(unsigned)> const &value)
-{
     if (verbose()) {
-        printf("Writing:");
-        for (unsigned module = 0; module < numModules(); ++module)
-        {
-            auto v = value(module);
-            printf(" 0x%02x 0x%02x", v[0], v[1]);
-        }
-        printf("\n");
+        printf("Writing: %d bytes.\n", data.size());
     }
-    open();
-
     select();
-    for (unsigned module = 0; module < numModules(); ++module)
-    {
-        spi_write_blocking(interface_, value(module).data(), 2);
-    }
+    spi_write_blocking(interface_, data.data(), data.size());
     deselect();
 }
