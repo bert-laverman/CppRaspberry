@@ -30,7 +30,7 @@ void LCD2x16::sendData(uint8_t data) {
         static_cast<uint8_t>(loNibble | (LCD_DATA_ON & backlightMask())),
         static_cast<uint8_t>(loNibble | (LCD_DATA_OFF & backlightMask()))
     };
-    i2c_.writeBytes(address_, dataSpan);
+    i2c_.write(address_, dataSpan);
 }
 
 void LCD2x16::sendCmd(uint8_t data) {
@@ -42,7 +42,7 @@ void LCD2x16::sendCmd(uint8_t data) {
         static_cast<uint8_t>(loNibble | (LCD_CMD_ON & backlightMask())),
         static_cast<uint8_t>(loNibble | (LCD_CMD_OFF & backlightMask()))
     };
-    i2c_.writeBytes(address_, dataSpan);
+    i2c_.write(address_, dataSpan);
 }
 
 void LCD2x16::initDisplay()

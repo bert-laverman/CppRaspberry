@@ -115,7 +115,7 @@ class LCD2x16 {
 
     inline void writeCmd(uint8_t cmd) {
         std::array<uint8_t, 1> data{cmd};
-        i2c_.writeBytes(address_, data);
+        i2c_.write(address_, data);
     }
 
     inline void write4Bits(uint8_t value) {

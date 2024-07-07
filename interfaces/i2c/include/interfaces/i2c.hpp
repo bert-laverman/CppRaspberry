@@ -20,29 +20,31 @@
 #include <iostream>
 #include <span>
 
+#include <util/named-component.hpp>
+#include <util/verbose-component.hpp>
+
 #include <protocols/messages.hpp>
 
 
 namespace nl::rakis::raspberrypi::protocols {
 
-    /**
-     * @brief Message header
-     */
-    struct MsgHeader {
-        uint8_t command;
-        uint8_t length;
-        uint8_t sender;
-        uint8_t checksum;
-    };
-    inline constexpr unsigned MsgHeaderSize = sizeof(MsgHeader);
+/**
+ * @brief Message header
+ */
+struct MsgHeader {
+    uint8_t command;
+    uint8_t length;
+    uint8_t sender;
+    uint8_t checksum;
+};
+constexpr unsigned MsgHeaderSize = sizeof(MsgHeader);
 
 }
 
 namespace nl::rakis::raspberrypi::interfaces
 {
 
-class I2C {
-    bool verbose_{ false };
+class I2C : public util::NamedComponent, public util::VerboseComponent {
     bool initialized_{ false };
     bool listening_{ false };
 
@@ -53,75 +55,140 @@ class I2C {
     protocols::MsgCallback callback_;
 
 protected:
-    inline void initialized(bool initialized) { initialized_ = initialized; }
-    inline void listening(bool listening) { listening_ = listening; }
-    inline void sdaPin(unsigned sdaPin) { sdaPin_ = sdaPin; }
-    inline void sclPin(unsigned sclPin) { sclPin_ = sclPin; }
-    inline void listenAddress(uint8_t address) { address_ = address; }
-    inline void callback(protocols::MsgCallback callback) { callback_ = callback; }
+
+    /**
+     * @brief Set the "initialized" flag.
+     */
+    void initialized(bool initialized) noexcept { initialized_ = initialized; }
     
+    /**
+     * @brief Check if the I2C bus has been initialized.
+     */
+    bool initialized() const noexcept { return initialized_; }
+
+    /**
+     * @brief Set if this interface is currently listening for incoming messages.
+     */
+    void listening(bool listening) { listening_ = listening; }
+
 public:
     I2C() = default;
-    I2C(unsigned sdaPin, unsigned sclPin) : sdaPin_(sdaPin), sclPin_(sclPin) {}
 
-    I2C(I2C const &) = default;
+    I2C(I2C const &) = delete;
     I2C(I2C &&) = default;
-    I2C &operator=(I2C const &) = default;
+    I2C &operator=(I2C const &) = delete;
     I2C &operator=(I2C &&) = default;
-    ~I2C() = default;
 
-    virtual std::ostream &log() = 0;
-
-    inline bool verbose() const { return verbose_; }
-    inline void verbose(bool verbose) { verbose_ = verbose; }
-
-    inline bool listening() const { return listening_; }
+    virtual ~I2C() = default;
 
     /**
-        * @brief Check if the I2C bus has been initialized.
-        */
-    inline bool initialized() const { return initialized_; }
+     * @brief Initialize the I2C bus for usage.
+     */
+    virtual void open() = 0;
 
     /**
-        * @brief return the GPIO pin number used for the SDA line.
-        */
-    inline unsigned sdaPin() const { return sdaPin_; }
+     * @brief Close the I2C bus, so it is back in an unintialized state.
+     */
+    virtual void close() = 0;
 
     /**
-        * @brief return the GPIO pin number used for the SCL line.
-        */
-    inline unsigned sclPin() const { return sclPin_; }
+     * @brief Cycle the I2C bus back to closed, then immediately open it again.
+     */
+    void reset() { close(); open(); }
 
     /**
-        * @brief return the I2C address our Pi is using.
-        */
-    inline uint8_t listenAddress() const { return address_; }
+     * @brief Find out if this implementation can listen for incoming messages.
+     */
+    virtual bool canListen() const noexcept = 0;
 
     /**
-        * @brief return the callback function used in responder mode.
-        */
-    inline protocols::MsgCallback callback() { return callback_; }
+     * @brief Start listening for incoming messages. If no address has been set, and the driver supports it, only Generall Call messages will be received.
+     */
+    virtual void startListening() = 0;
 
     /**
-        * @brief Open the I2C bus for usage.
-        */
-    virtual void open() =0;
+     * @brief Stop listening for incoming messages.
+     */
+    virtual void stopListening() = 0;
 
     /**
-        * @brief Close the I2C bus, so it is back in an unintialized state.
-        */
-    virtual void close() =0;
+     * @brief Check if we are currently listening for incoming messages.
+     */
+    bool listening() const noexcept { return listening_; }
 
     /**
-        * @brief Cycle the I2C bus back to closed, then immediately open it again.
-        */
-    inline void reset() { close(); open(); }
+     * @brief Find out if this implementation can send messages.
+     */
+    virtual bool canSend() const noexcept = 0;
 
-    virtual void switchToControllerMode() =0;
-    virtual void switchToResponderMode(uint8_t address, protocols::MsgCallback callback) =0;
+    /**
+     * @brief Set the GPIO pin used for data. NOTE: If the value changes, the connection will be forcibly closed.
+     */
+    void sdaPin(unsigned pin) {
+        if (sdaPin_ != pin) {
+            close();
+            sdaPin_ = pin;
+        }
+    }
 
-    virtual bool readBytes(uint8_t address, std::span<uint8_t> data) =0;
-    virtual bool writeBytes(uint8_t address, std::span<uint8_t> data) =0;
+    /**
+     * @brief return the GPIO pin number used for the SDA line.
+     */
+    unsigned sdaPin() const noexcept { return sdaPin_; }
+
+    /**
+     * @brief Set the GPIO pin used the clock. NOTE: If the value changes, the connection will be forcibly closed.
+     */
+    void sclPin(unsigned pin) {
+        if (sclPin_ != pin) {
+            close();
+            sclPin_ = pin;
+        }
+    }
+
+    /**
+     * @brief return the GPIO pin number used for the SCL line.
+     */
+    unsigned sclPin() const { return sclPin_; }
+
+    /**
+     * @brief Set the address to listen for. NOTE: If the value changes and it is currently listening, it will force a reset.
+     */
+    void listenAddress(uint8_t address) {
+        if (address_ != address) {
+            const bool needRestart = listening();
+            if (needRestart) {
+                stopListening();
+            }
+            address_ = address;
+            if (needRestart) {
+                startListening();
+            }
+        }
+    }
+
+    /**
+     * @brief return the I2C address our Pi is using.
+     */
+    uint8_t listenAddress() const noexcept { return address_; }
+
+    /**
+     * @brief Set the callback to be used for incoming messages.
+     */
+    void callback(protocols::MsgCallback callback) noexcept { callback_ = callback; }
+
+    /**
+     * @brief return the callback function used in responder mode.
+     */
+    protocols::MsgCallback callback() const noexcept { return callback_; }
+
+    /**
+     * @brief Attempt to send a span of bytes to a listener at the given address.
+     *
+     * @return true if successfull, which means there was a listener active at that address.
+     */
+    virtual bool write(uint8_t address, std::span<uint8_t> data) = 0;
+
 };
 
 } // namespace nl::rakis::raspberrypi::interfaces

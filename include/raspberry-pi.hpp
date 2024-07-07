@@ -88,10 +88,17 @@ public:
         return i2c_ [name];
     }
 
+    template <typename S, typename... Args>
+    auto addI2C(std::string name, Args&&... args) {
+        i2c_ [name] = std::make_shared<S>(std::forward<Args>(args)...);
+        return i2c_ [name];
+    }
+
     /**
      * @brief Check if we have an I2C interface at the given pins.
      */
     bool haveI2C(unsigned sdaPin, unsigned sclPin);
+
 #endif
 
 #if defined(HAVE_SPI)
@@ -112,6 +119,7 @@ public:
         spi_ [name] = std::make_shared<S>(std::forward<Args>(args)...);
         return spi_ [name];
     }
+
 #endif
 
 };
