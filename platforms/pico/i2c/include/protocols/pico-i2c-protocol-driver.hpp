@@ -34,6 +34,6 @@
 
 namespace nl::rakis::raspberrypi::protocols {
 
-using PicoI2CProtocolDriver = I2CProtocolDriver<interfaces::PicoI2C, interfaces::PicoI2C, util::PicoMessageQueue>;
+using PicoI2CProtocolDriver = I2CProtocolDriver<util::PicoMessageQueue>;
 
 } // namespace nl::rakis::raspberrypi::protocols

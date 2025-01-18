@@ -148,7 +148,7 @@ void GPIO::init(unsigned pin, GPIOMode m)
     }
     claim(pin, m);
     gpio_init(pin);
-    gpio_set_function(pin, static_cast<gpio_function>(m));
+    gpio_set_function(pin, static_cast<gpio_function_t>(m));
 }
 
 void GPIO::setForOutput(unsigned pin)

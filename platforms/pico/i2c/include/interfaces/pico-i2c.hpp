@@ -16,7 +16,6 @@
  */
 
 #include <vector>
-#include <iostream>
 
 #include <pico/stdlib.h>
 #include "hardware/i2c.h"
@@ -26,51 +25,55 @@
 
 namespace nl::rakis::raspberrypi::interfaces {
 
-    class PicoI2C : public I2C
+class PicoI2C : public I2C
+{
+    constexpr static const uint baudrate = 100000;
+
+    i2c_inst_t *interface_{ nullptr };
+
+    inline uint8_t readByteRaw() {
+        return i2c_read_byte_raw(interface_);
+    }
+    inline void readBytesRaw(std::vector<uint8_t> &date) {
+        i2c_read_raw_blocking(interface_, date.data(), date.size());
+    }
+
+public:
+    PicoI2C(i2c_inst_t *interface, unsigned sdaPin, unsigned sclPin);
+
+    PicoI2C(unsigned sdaPin, unsigned sclPin) : PicoI2C(i2c0, sdaPin, sclPin)
     {
-        constexpr static const uint baudrate = 100000;
+    }
 
-        i2c_inst_t *interface_{ nullptr };
+    PicoI2C() : PicoI2C(i2c0, PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN)
+    {
+    }
 
-        inline uint8_t readByteRaw() {
-            return i2c_read_byte_raw(interface_);
-        }
-        inline void readBytesRaw(std::vector<uint8_t> &date) {
-            i2c_read_raw_blocking(interface_, date.data(), date.size());
-        }
+    PicoI2C(const PicoI2C &) = default;
+    PicoI2C(PicoI2C &&) = default;
+    PicoI2C &operator=(const PicoI2C &) = default;
+    PicoI2C &operator=(PicoI2C &&) = default;
 
-    public:
-        PicoI2C() = default;
+    ~PicoI2C() = default;
 
-        PicoI2C(i2c_inst_t *interface, unsigned sdaPin, unsigned sclPin);
+    inline int channel() const { return i2c_hw_index(interface_); }
 
-        PicoI2C(unsigned sdaPin, unsigned sclPin) : PicoI2C(i2c0, sdaPin, sclPin)
-        {
-        }
+    static PicoI2C& defaultInstance();
 
-        PicoI2C(const PicoI2C &) = default;
-        PicoI2C(PicoI2C &&) = default;
-        PicoI2C &operator=(const PicoI2C &) = default;
-        PicoI2C &operator=(PicoI2C &&) = default;
-        ~PicoI2C() = default;
+    virtual void open() override;
 
-        virtual std::ostream &log() {
-            return std::cout;
-        }
+    virtual void close() override;
 
-        inline int channel() const { return i2c_hw_index(interface_); }
+    virtual bool canListen() const noexcept override;
 
-        static PicoI2C& defaultInstance();
+    virtual void startListening() override;
 
-        virtual void open() override;
-        virtual void close() override;
+    virtual void stopListening() override;
 
-        virtual void switchToControllerMode() override;
+    virtual bool canSend() const noexcept override;
 
-        virtual void switchToResponderMode(uint8_t address, protocols::MsgCallback cb) override;
+    bool write(uint8_t address, std::span<uint8_t> data) override;
 
-        virtual bool readBytes(uint8_t address, std::span<uint8_t> data) override;
+};
 
-        virtual bool writeBytes(uint8_t address, std::span<uint8_t> data) override;
-    };
-}
+} // namespace nl::rakis::raspberrypi::interfaces

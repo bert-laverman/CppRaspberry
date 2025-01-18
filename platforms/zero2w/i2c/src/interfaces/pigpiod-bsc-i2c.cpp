@@ -81,6 +81,10 @@ bool PigpiodBSCI2C::canListen() const noexcept {
 void PigpiodBSCI2C::processBytes(std::span<uint8_t> data)
 {
     bytes_.insert(bytes_.end(), data.begin(), data.end());
+    if (verbose()) {
+        log() << "Received " << data.size() << " bytes, now " << bytes_.size() << " in buffer\n";
+    }
+
     while (bytes_.size() >= protocols::MsgHeaderSize) {
         protocols::MsgHeader header;
         std::memcpy(&header, bytes_.data(), protocols::MsgHeaderSize);
@@ -89,6 +93,8 @@ void PigpiodBSCI2C::processBytes(std::span<uint8_t> data)
         }
         if (callback()) {
             callback()(protocols::toCommand(header.command), header.sender, std::span<uint8_t>(bytes_.data() + protocols::MsgHeaderSize, header.length));
+        } else {
+            log(std::format("Received message from 0x{:02x} with command 0x{:02x} and length {}, but no callback", header.sender, header.command, header.length));
         }
         bytes_.erase(bytes_.begin(), bytes_.begin() + protocols::MsgHeaderSize + header.length);
     }
@@ -176,7 +182,7 @@ void PigpiodBSCI2C::stopListening()
         } else if (status > 0) {
             log(std::format("bsc_i2c() returned 0x{:04x}", status));
         }
-        std::cerr << "Told pigpiod to stop listening";
+        log("Told pigpiod to stop listening");
     }
 }
 

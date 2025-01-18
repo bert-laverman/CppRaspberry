@@ -18,6 +18,9 @@
 #include <cstdint>
 
 #include <iostream>
+#if !defined(TARGET_PICO)
+#include <format>
+#endif
 #include <span>
 
 #include <util/named-component.hpp>
@@ -102,6 +105,32 @@ public:
     virtual bool canListen() const noexcept = 0;
 
     /**
+     * @brief Set the address to listen for. NOTE: If the value changes and it is currently listening, it will force a reset.
+     */
+    void listenAddress(uint8_t address) {
+    #if defined(TARGET_PICO)
+        printf("Setting listen address to 0x%02x\n", address);
+    #else
+        log(std::format("Setting listen address to 0x{:02x}", address));
+    #endif
+        if (address_ != address) {
+            const bool needRestart = listening();
+            if (needRestart) {
+                stopListening();
+            }
+            address_ = address;
+            if (needRestart) {
+                startListening();
+            }
+        }
+    }
+
+    /**
+     * @brief return the I2C address our Pi is using.
+     */
+    uint8_t listenAddress() const noexcept { return address_; }
+
+    /**
      * @brief Start listening for incoming messages. If no address has been set, and the driver supports it, only Generall Call messages will be received.
      */
     virtual void startListening() = 0;
@@ -150,27 +179,6 @@ public:
      * @brief return the GPIO pin number used for the SCL line.
      */
     unsigned sclPin() const { return sclPin_; }
-
-    /**
-     * @brief Set the address to listen for. NOTE: If the value changes and it is currently listening, it will force a reset.
-     */
-    void listenAddress(uint8_t address) {
-        if (address_ != address) {
-            const bool needRestart = listening();
-            if (needRestart) {
-                stopListening();
-            }
-            address_ = address;
-            if (needRestart) {
-                startListening();
-            }
-        }
-    }
-
-    /**
-     * @brief return the I2C address our Pi is using.
-     */
-    uint8_t listenAddress() const noexcept { return address_; }
 
     /**
      * @brief Set the callback to be used for incoming messages.

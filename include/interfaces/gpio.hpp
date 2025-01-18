@@ -123,7 +123,7 @@ public:
     void setPullDown(unsigned pin);
 
 
-    using GPIOHandler = std::function<void(uint pin, uint32_t event)>;
+    using GPIOHandler = std::function<void(unsigned pin, uint32_t event)>;
 
     /**
      * @brief Set an interrup handler to trigger when the input on the pin changes from low to high.

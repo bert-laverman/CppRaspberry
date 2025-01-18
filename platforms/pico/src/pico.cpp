@@ -34,34 +34,6 @@ RaspberryPi& RaspberryPi::instance() {
     return instance;
 }
 
-#if defined(HAVE_I2C)
-
-/**
-    * @brief Check if an I2C interface is available at the given pins.
-    */
-bool haveI2C(unsigned sdaPin, unsigned sclPin) {
-    for (auto it = i2cInterfaces().begin(); it != i2cInterfaces().end(); ++it) {
-        if (it->sdaPin() == sdaPin && it->sclPin() == sclPin) {
-            return true;
-        }
-    }
-    return false;
-}
-
-/**
-    * @brief Get the I2C interface at the given pins, adding it if not yet available.
-    */
-interfaces::PicoI2C& i2c(unsigned sdaPin, unsigned sclPin) {
-    for (auto it = i2cInterfaces().begin(); it != i2cInterfaces().end(); ++it) {
-        if (it->sdaPin() == sdaPin && it->sclPin() == sclPin) {
-            return *it;
-        }
-    }
-    return i2cInterfaces().at(addInterface(std::move(interfaces::PicoI2C(sdaPin, sclPin))));
-}
-
-#endif
-
 void RaspberryPi::sleepMs(unsigned ms) const {
     sleep_ms(ms);
 };

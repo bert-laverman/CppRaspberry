@@ -36,15 +36,11 @@ using namespace nl::rakis::raspberrypi::interfaces;
 using namespace nl::rakis::raspberrypi::protocols;
 
 
-PicoI2C::PicoI2C(i2c_inst_t *interface, unsigned sdaPin, unsigned sclPin)
-    : I2C(sdaPin, sclPin), interface_(interface)
+PicoI2C::PicoI2C(i2c_inst_t *interface, unsigned sdaPinn, unsigned sclPinn)
+    : interface_(interface)
 {
-}
-
-PicoI2C &PicoI2C::defaultInstance()
-{
-    static PicoI2C instance{i2c0, PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN};
-    return instance;
+    sdaPin(sdaPinn);
+    sclPin(sclPinn);
 }
 
 
@@ -88,12 +84,9 @@ void PicoI2C::close()
 }
 
 
-void PicoI2C::switchToControllerMode()
+bool PicoI2C::canListen() const noexcept
 {
-    if (verbose()) {
-        printf("Switching to Controller mode on channel %d.\n", channel());
-    }
-    reset();
+    return true;
 }
 
 
@@ -250,13 +243,14 @@ static void i2c1_cb() {
     i2c_cb(i2c1, *picoI2C1);
 }
 
-void PicoI2C::switchToResponderMode(uint8_t address, MsgCallback cb)
+void PicoI2C::startListening()
 {
-    if (verbose()) {
-        printf("Switching to responder mode on channel %d using address 0x%02x\n", channel(), address);
+    if (listening()) {
+        return;
     }
-    listenAddress(address);
-    callback(cb);
+    if (verbose()) {
+        printf("Switching to responder mode on channel %d using address 0x%02x\n", channel(), listenAddress());
+    }
     reset();
 
     if (interface_ == i2c0) {
@@ -265,7 +259,7 @@ void PicoI2C::switchToResponderMode(uint8_t address, MsgCallback cb)
         }
         picoI2C0 = this;
         irq_set_exclusive_handler(I2C0_IRQ, i2c0_cb);
-        i2c_set_slave_mode(interface_, true, address);
+        i2c_set_slave_mode(interface_, true, listenAddress());
         i2c0->hw->intr_mask = I2C_IC_INTR_STAT_R_RX_FULL_BITS|I2C_IC_INTR_STAT_R_GEN_CALL_BITS;
         irq_set_enabled(I2C0_IRQ, true);
     } else if (interface_ == i2c1) {
@@ -274,7 +268,7 @@ void PicoI2C::switchToResponderMode(uint8_t address, MsgCallback cb)
         }
         picoI2C1 = this;
         irq_set_exclusive_handler(I2C1_IRQ, i2c1_cb);
-        i2c_set_slave_mode(interface_, true, address);
+        i2c_set_slave_mode(interface_, true, listenAddress());
         i2c1->hw->intr_mask = I2C_IC_INTR_STAT_R_RX_FULL_BITS|I2C_IC_INTR_STAT_R_GEN_CALL_BITS;
         irq_set_enabled(I2C1_IRQ, true);
     } else {
@@ -282,13 +276,33 @@ void PicoI2C::switchToResponderMode(uint8_t address, MsgCallback cb)
     }
 }
 
-bool PicoI2C::readBytes(uint8_t address, std::span<uint8_t> data)
+
+void PicoI2C::stopListening()
 {
-    printf("PicoI2C::readBytes(address=0x%02x, data.size=%d) unimplemented.\n", address, data.size());
-    return false;
+    if (!listening()) {
+        return;
+    }
+    if (verbose()) {
+        printf("Switching to master mode on channel %d\n", channel());
+    }
+    if (interface_ == i2c0) {
+        irq_set_enabled(I2C0_IRQ, false);
+        picoI2C0 = nullptr;
+    } else if (interface_ == i2c1) {
+        irq_set_enabled(I2C1_IRQ, false);
+        picoI2C1 = nullptr;
+    } else {
+        log() << "Trying to use an unknown I2C interface" << std::endl;
+    }
+    i2c_set_slave_mode(interface_, false, 0);
 }
 
-bool PicoI2C::writeBytes(uint8_t address, std::span<uint8_t> data)
+bool PicoI2C::canSend() const noexcept
+{
+    return true;
+}
+
+bool PicoI2C::write(uint8_t address, std::span<uint8_t> data)
 {
     if (verbose()) {
         printf("Sending %d bytes to 0x%02x on channel %d.\n", data.size(), address, channel());

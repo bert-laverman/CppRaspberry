@@ -25,10 +25,9 @@
 #include <list>
 #include <tuple>
 #include <vector>
+#include <memory>
 
-#if defined(TARGET_PICO)
-#include <pico/stdlib.h>
-#else
+#if !defined(TARGET_PICO)
 #include <format>
 #endif
 
@@ -42,30 +41,27 @@ namespace nl::rakis::raspberrypi::protocols {
 /**
  * @brief This class manages communication through I2C, using one bus for incoming, and another for outgoing messages.
  */
-template <typename I2COutImpl, typename I2CInImpl, typename QueueImpl>
+template <typename QueueImpl>
 class I2CProtocolDriver : public ProtocolDriver<QueueImpl> {
-    I2COutImpl& i2cOut_;
-    I2CInImpl& i2cIn_;
-
-public:
-    I2CProtocolDriver(I2COutImpl& out, I2CInImpl& in) : i2cOut_(out), i2cIn_(in) {};
-
-    virtual ~I2CProtocolDriver() {}
-
-    I2CProtocolDriver(I2CProtocolDriver const &) = delete;
-    I2CProtocolDriver(I2CProtocolDriver &&) = delete;
-    I2CProtocolDriver &operator=(I2CProtocolDriver const &) = delete;
-    I2CProtocolDriver &operator=(I2CProtocolDriver &&) = delete;
+    std::shared_ptr<interfaces::I2C> i2cOut_;
+    std::shared_ptr<interfaces::I2C> i2cIn_;
 
 protected:
     /**
      * @brief Reset the I2C protocol driver. If operating in dual mode, set both in their correct modes.
      */
     void reset() {
-        i2cOut_.reset();
-        i2cOut_.switchToControllerMode();
-        i2cIn_.reset();
-        i2cIn_.switchToResponderMode(i2cIn_.listenAddress(), i2cIn_.callback());
+        if (i2cOut_) {
+            i2cOut_->reset();
+        }
+        if (i2cIn_) {
+            auto listening = i2cIn_->listening();
+            i2cIn_->stopListening();
+            i2cIn_->reset();
+            if (listening) {
+                i2cIn_->startListening();
+            }
+        }
     }
 
     /**
@@ -80,37 +76,135 @@ protected:
     }
 
 public:
+    I2CProtocolDriver() = default;
 
-    inline I2CInImpl& i2cIn() { return i2cIn_; }
-    inline I2COutImpl& i2cOut() { return i2cOut_; }
+    virtual ~I2CProtocolDriver() {}
 
-    void enableControllerMode() override {
-        i2cOut_.switchToControllerMode();
+    I2CProtocolDriver(I2CProtocolDriver const &) = delete;
+    I2CProtocolDriver(I2CProtocolDriver &&) = delete;
+    I2CProtocolDriver &operator=(I2CProtocolDriver const &) = delete;
+    I2CProtocolDriver &operator=(I2CProtocolDriver &&) = delete;
+
+    I2CProtocolDriver(std::shared_ptr<interfaces::I2C> out, std::shared_ptr<interfaces::I2C> in) : i2cOut_(out), i2cIn_(in) {};
+
+    void addInterface(std::shared_ptr<interfaces::I2C> i2c) {
+        if (i2c->canListen()) {
+            i2cIn_ = i2c;
+        }
+        if (i2c->canSend()) {
+            i2cOut_ = i2c;
+        }
     }
 
-    void disableControllerMode() override {
-        i2cOut_.close();
+    void i2cIn(std::shared_ptr<interfaces::I2C> i2c) { i2cIn_ = i2c; }
+    std::weak_ptr<interfaces::I2C> i2cIn() const { return i2cIn_; }
+    void i2cOut(std::shared_ptr<interfaces::I2C> i2c) { i2cOut_ = i2c; }
+    std::weak_ptr<interfaces::I2C> i2cOut() const { return i2cOut_; }
+
+    /**
+     * @brief Initialize the protocol driver for usage.
+     */
+    virtual void open() override {
+        if (i2cIn_) {
+            i2cIn_->open();
+        }
+        if (i2cOut_) {
+            i2cOut_->open();
+        }
     }
 
-    virtual void enableResponderMode(uint8_t address = GeneralCallAddress) override {
-        i2cIn_.switchToResponderMode(address, [this](Command command, uint8_t sender, const std::span<uint8_t> data) {
-            this->pushIncoming(command, sender, data);
-        });
+    /**
+     * @brief Close the protocol driver, so it is back in an unintialized state.
+     */
+    virtual void close() override {
+        if (i2cIn_) {
+            i2cIn_->close();
+        }
+        if (i2cOut_) {
+            i2cOut_->close();
+        }
     }
 
-    bool isListening() const override {
-        return i2cIn_.listening();
+    /**
+     * @brief Find out if we can listen for incoming messages.
+     */
+    virtual bool canListen() const noexcept override {
+        return i2cIn_ && i2cIn_->canListen();
     }
 
-    uint8_t listenAddress() const override {
-        return i2cIn_.listenAddress();
+    /**
+     * @brief Set the address to listen to.
+     *
+     * @param address The address to listen to.
+     */
+    virtual void listenAddress(uint8_t address) override {
+        if (i2cIn_) {
+            i2cIn_->listenAddress(address);
+        } else {
+            this->log("No incoming I2C interface available, cannot set listen address.");
+        }
     }
 
-    void disableResponderMode() override {
-        i2cIn_.close();
+    /**
+     * @brief Get the address we are listening to.
+     *
+     * @return The address we are listening to, or 0 if not listening.
+     */
+    virtual uint8_t listenAddress() const override {
+        return i2cIn_ ? i2cIn_->listenAddress() : 0;
     }
 
-    bool sendMessage(Command command, uint8_t address, const std::span<uint8_t> msg) override {
+    /**
+     * @brief Start listening for incoming messages.
+     */
+    virtual void startListening() override {
+        if (i2cIn_) {
+            i2cIn_->callback([this](Command command, uint8_t sender, const std::span<uint8_t> data) {
+                this->pushIncoming(command, sender, data);
+            });
+            i2cIn_->startListening();
+        } else {
+            this->log("No incoming I2C interface available, cannot start listening.");
+        }
+    }
+
+    /**
+     * @brief Stop listening for incoming messages.
+     */
+    virtual void stopListening() override {
+        if (i2cIn_) {
+            i2cIn_->stopListening();
+        } else {
+            this->log("No incoming I2C interface available, cannot stop listening.");
+        }
+    }
+
+    /**
+     * @brief Check if we are currently listening for incoming messages.
+     */
+    virtual bool listening() const noexcept override {
+        return i2cIn_ && i2cIn_->listening();
+    }
+
+    /**
+     * @brief Find out if this implementation can send messages.
+     */
+    virtual bool canSend() const noexcept override {
+        return i2cOut_ && i2cOut_->canSend();
+    }
+
+    /**
+     * @brief Send a message.
+     *
+     * @param command The command to send.
+     * @param address The address to send it to.
+     * @param msg     The payload of the message.
+     */
+    virtual bool sendMessage(Command command, uint8_t address, const std::span<uint8_t> msg) override {
+        if (!i2cOut_) {
+            this->log("No outgoing I2C interface available, cannot send message.");
+            return false;
+        }
         std::vector<uint8_t> data(MsgHeaderSize + msg.size(), 0x00);
         std::memcpy(data.data() + MsgHeaderSize, msg.data(), msg.size());
 
@@ -132,7 +226,7 @@ public:
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-        return i2cOut_.writeBytes(address, data);
+        return i2cOut_->write(address, data);
 #pragma GCC diagnostic pop
     }
 
