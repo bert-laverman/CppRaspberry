@@ -54,15 +54,18 @@ private:
 
     std::shared_ptr<devices::SPIDevice> device_;
 
+protected:
+    bool selected_{ false };
+
 public:
-    SPI();
+    SPI() = default;
 
     SPI(SPI const &) = delete;
     SPI(SPI &&) = default;
     SPI &operator=(SPI const &) = delete;
     SPI &operator=(SPI &&) = default;
 
-    virtual ~SPI();
+    virtual ~SPI() = default;
 
     /**
      * @brief Return the device connected to this interface. If there are multiple devices daisy-chained, they are assumed to be all of the same type.
@@ -156,7 +159,7 @@ public:
     /**
      * @brief Return if this interface is currently active, i.e. is the CS line is selected.
      */
-    virtual bool selected() const noexcept;
+    bool selected() { return selected_; }
 
     /**
      * @brief Enable the CS line for this SPI chain.

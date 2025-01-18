@@ -81,6 +81,7 @@ void PicoSPI::select()
 {
     open();
 
+    selected_ = true;
     asm volatile("nop \n nop \n nop");
     RaspberryPi::gpio().set(csPin(), false);
     asm volatile("nop \n nop \n nop");
@@ -88,6 +89,7 @@ void PicoSPI::select()
 
 void PicoSPI::deselect()
 {
+    selected_ = false;
     asm volatile("nop \n nop \n nop");
     RaspberryPi::gpio().set(csPin(), true);
     asm volatile("nop \n nop \n nop");

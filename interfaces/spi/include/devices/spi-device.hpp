@@ -56,7 +56,7 @@ public:
     void interface(std::shared_ptr<interfaces::SPI> spi) { spi_ = spi; }
 
     unsigned numDevices() const noexcept { return numDevices_; }
-    void numDevices(unsigned num);
+    void numDevices(unsigned num) { numDevices_ = num; numDevicesChanged(); }
 
 };
 

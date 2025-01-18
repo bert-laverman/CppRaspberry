@@ -19,7 +19,3 @@ add_compile_definitions(HAVE_SPI)
 
 set(CPP_RASPBERRY_INCLUDES ${CPP_RASPBERRY_INCLUDES}
     ${CMAKE_CURRENT_LIST_DIR}/include)
-
-set(CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES}
-    ${CMAKE_CURRENT_LIST_DIR}/src/interfaces/spi.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/devices/spi-device.cpp)

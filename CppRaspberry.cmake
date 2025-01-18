@@ -20,8 +20,9 @@ endif(NOT APP_NAME)
 
 set(CPP_RASPBERRY_INCLUDES
     ${CMAKE_CURRENT_LIST_DIR}/include)
-set(CPP_RASPBERRY_SOURCES
-    ${CMAKE_CURRENT_LIST_DIR}/src/raspberry-pi.cpp)
+set(CPP_RASPBERRY_SOURCES "")
+#set(CPP_RASPBERRY_SOURCES
+#    ${CMAKE_CURRENT_LIST_DIR}/src/raspberry-pi.cpp)
 set(CPP_RASPBERRY_LIBS "")
 
 # The target platform is set with a "TARGET_XYZ" variable.
