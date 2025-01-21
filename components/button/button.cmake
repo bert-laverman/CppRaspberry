@@ -13,9 +13,13 @@
 # limitations under the License.
 
 
-message(STATUS "Adding files for BUTTON support")
+if(HAVE_BUTTON)
 
-add_compile_definitions(HAVE_BUTTON)
+    message(STATUS "Adding files for BUTTON support")
 
-set(CPP_RASPBERRY_INCLUDES ${CPP_RASPBERRY_INCLUDES}
-    ${CMAKE_CURRENT_LIST_DIR}/include)
+    add_compile_definitions(HAVE_BUTTON)
+
+    set(CPP_RASPBERRY_INCLUDES ${CPP_RASPBERRY_INCLUDES}
+        ${CMAKE_CURRENT_LIST_DIR}/include)
+
+endif()

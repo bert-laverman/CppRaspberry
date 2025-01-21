@@ -88,13 +88,11 @@ public:
 
     virtual void close() override;
 
-    virtual bool selected() const noexcept override;
-
     virtual void select() override;
 
     virtual void deselect() override;
 
-    virtual void write(std::span<uint8_t> value) override;
+    virtual void write(const std::span<uint8_t> value) override;
 
 };
 

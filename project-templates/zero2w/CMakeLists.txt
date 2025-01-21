@@ -23,6 +23,7 @@ set(HAVE_SPI on)
 set(HAVE_PWM off)
 set(HAVE_MAX7219 on)
 set(HAVE_LCD2X16 on)
+set(HAVE_SSD1305 on)
 
 #
 # The CppRaspberry library location is taken from the CPP_RASPBERRY_PATH environment variable

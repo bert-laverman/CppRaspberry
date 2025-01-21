@@ -13,9 +13,13 @@
 # limitations under the License.
 
 
-message(STATUS "Adding files for LED support")
+if(HAVE_LED)
 
-add_compile_definitions(HAVE_LED)
+    message(STATUS "Adding files for LED support")
 
-set(CPP_RASPBERRY_INCLUDES ${CPP_RASPBERRY_INCLUDES}
-    ${CMAKE_CURRENT_LIST_DIR}/include)
+    add_compile_definitions(HAVE_LED)
+
+    set(CPP_RASPBERRY_INCLUDES ${CPP_RASPBERRY_INCLUDES}
+        ${CMAKE_CURRENT_LIST_DIR}/include)
+
+endif()

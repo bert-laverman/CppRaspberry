@@ -95,7 +95,7 @@ void PicoSPI::deselect()
     asm volatile("nop \n nop \n nop");
 }
 
-void PicoSPI::write(std::span<uint8_t> data)
+void PicoSPI::write(const std::span<uint8_t> data)
 {
     open();
 

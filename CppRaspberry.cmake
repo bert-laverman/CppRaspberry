@@ -44,35 +44,25 @@ endif(HAVE_SPI)
 
 # And also add device specific stuff
 
-if(HAVE_LCD2X16)
-    include(${CMAKE_CURRENT_LIST_DIR}/devices/lcd2x16/lcd2x16.cmake)
-endif(HAVE_LCD2X16)
-
-if(HAVE_MAX7219)
-    include(${CMAKE_CURRENT_LIST_DIR}/devices/max7219/max7219.cmake)
-endif(HAVE_MAX7219)
-
-if(HAVE_MCP23S17)
-include(${CMAKE_CURRENT_LIST_DIR}/devices/mcp23s17/mcp23s17.cmake)
-endif(HAVE_MCP23S17)
-
-if(HAVE_TLC59711)
-include(${CMAKE_CURRENT_LIST_DIR}/devices/tlc59711/tlc59711.cmake)
-endif(HAVE_TLC59711)
+file (STRINGS ${CMAKE_CURRENT_LIST_DIR}/devices/devices.txt ALL_DEVICES)
+foreach (device ${ALL_DEVICES})
+    if (NOT device MATCHES "^[ \t\r\n]*#.*")
+        if(IS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/devices/${device})
+            include(${CMAKE_CURRENT_LIST_DIR}/devices/${device}/${device}.cmake)
+        endif()
+    endif()
+endforeach()
 
 # And components
 
-if(HAVE_LED)
-include(${CMAKE_CURRENT_LIST_DIR}/components/led/led.cmake)
-endif(HAVE_LED)
-
-if(HAVE_7SEGMENT)
-include(${CMAKE_CURRENT_LIST_DIR}/components/7segment/7segment.cmake)
-endif(HAVE_7SEGMENT)
-
-if(HAVE_BUTTON)
-include(${CMAKE_CURRENT_LIST_DIR}/components/button/button.cmake)
-endif(HAVE_BUTTON)
+file (STRINGS ${CMAKE_CURRENT_LIST_DIR}/components/components.txt ALL_COMPONENTS)
+foreach (component ${ALL_COMPONENTS})
+    if (NOT component MATCHES "^[ \t\r\n]*#.*")
+        if(IS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/components/${component})
+            include(${CMAKE_CURRENT_LIST_DIR}/components/${component}/${component}.cmake)
+        endif()
+    endif()
+endforeach()
 
 # Finally, a macro to add all this to your local config.
 

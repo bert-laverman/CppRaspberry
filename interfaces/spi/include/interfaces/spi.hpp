@@ -174,7 +174,7 @@ public:
     /**
      * @brief Write the given set of bytes.
      */
-    virtual void write(std::span<uint8_t> value) =0;
+    virtual void write(const std::span<uint8_t> value) =0;
 
 };
 

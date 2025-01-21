@@ -61,7 +61,7 @@ public:
 
     virtual void deselect() override;
 
-    virtual void write(std::span<uint8_t> data) override;
+    virtual void write(const std::span<uint8_t> data) override;
 
 };
 
