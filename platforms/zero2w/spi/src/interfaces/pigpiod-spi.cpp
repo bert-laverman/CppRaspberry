@@ -30,10 +30,6 @@ extern "C" {
 using namespace nl::rakis::raspberrypi::interfaces;
 
 
-bool PigpiodSPI::selected() const noexcept {
-    return false;
-}
-
 void PigpiodSPI::open()
 {
     auto& gpio = RaspberryPi::gpio();
@@ -166,20 +162,6 @@ void PigpiodSPI::close()
     }
 }
 
-
-void PigpiodSPI::select()
-{
-    if (verbose()) {
-        log() << "PigpiodSPI::select() not implemented\n";
-    }
-}
-
-void PigpiodSPI::deselect()
-{
-    if (verbose()) {
-        log() << "PigpiodSPI::deselect() not implemented\n";
-    }
-}
 
 void PigpiodSPI::write(std::span<uint8_t> data)
 {

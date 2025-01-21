@@ -27,8 +27,8 @@
 namespace nl::rakis::raspberrypi::devices {
 
 
-template<unsigned Width =128, unsigned Height =32>
-class SSD1305 : public SPIDevice {
+template<class SpiClass, unsigned Width =128, unsigned Height =32>
+class SSD1305 : public SPIDevice<SpiClass> {
     unsigned reset_{ 19 };  // Reset pin (Pin 27, GPIO 21)
     unsigned dc_{ 18 };     // Command/data pin (Pin 26, GPIO 20)
 
@@ -49,14 +49,14 @@ protected:
 
         gpio.set(dc_, false);
 
-        interface()->write(std::span<uint8_t>{std::addressof(cmd), 1});
+        this->interface().write(std::span<uint8_t>{std::addressof(cmd), 1});
     }
 
     void data(const std::span<uint8_t> buffer) {
         auto& gpio(RaspberryPi::instance().gpio());
 
         gpio.set(dc_, true);
-        interface()->write(buffer);
+        this->interface().write(buffer);
     }
 
     void dirty() noexcept { dirty_ = true; }
@@ -64,12 +64,12 @@ protected:
     bool isDirty() const noexcept { return dirty_; }
 
 public:
-    SSD1305() = default;
+    SSD1305(SpiClass& spi) : SPIDevice<SpiClass>(spi) {}
     ~SSD1305() = default;
 
-    SSD1305(const SSD1305&) = default;
+    SSD1305(const SSD1305&) = delete;
     SSD1305(SSD1305&&) = default;
-    SSD1305& operator=(const SSD1305&) = default;
+    SSD1305& operator=(const SSD1305&) = delete;
     SSD1305& operator=(SSD1305&&) = default;
 
     unsigned dcPin() const noexcept { return dc_; }
@@ -94,7 +94,7 @@ public:
         RaspberryPi::instance().sleepMs(100);
         gpio.set(reset_, false);
         RaspberryPi::instance().sleepMs(100);
-        gpio.set(interface()->csPin(), true);
+        this->interface().select();
         gpio.set(dc_, false);
         gpio.set(reset_, true);
         RaspberryPi::instance().sleepMs(100);
@@ -127,6 +127,9 @@ public:
         RaspberryPi::instance().sleepMs(200);
 
         command(0xaf);
+
+        RaspberryPi::instance().sleepMs(10);
+        this->interface().deselect();
     }
 
     void sendBuffer() {

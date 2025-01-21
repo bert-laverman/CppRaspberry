@@ -33,148 +33,144 @@
 namespace nl::rakis::raspberrypi::interfaces {
 
 
+static constexpr unsigned speed5MHz = 5'000'000;
+static constexpr unsigned speed10MHz = 10'000'000;
+static constexpr unsigned speed20MHz = 20'000'000;
+
 /**
- * @brief This class represents a SPI interface, which can have zero or more (daisy-chained) devices connected to it.
+ * This class represents a SPI interface, which can have zero or more (daisy-chained) devices connected to it.
  *
  * Note that the same physical SPI connection can be reused by different chains of devices by using separate CS (Chip Select) lines.
  */
-class SPI : public util::VerboseComponent, public util::NamedComponent, public std::enable_shared_from_this<SPI>
+template <class SpiClass>
+class SPI : public util::VerboseComponent, public util::NamedComponent
 {
 public:
     static constexpr int NO_PIN{ -1 };
 
 private:
-    bool is4Pin_{ false };
     int csPin_{ NO_PIN };
     int sclkPin_{ NO_PIN };
     int mosiPin_{ NO_PIN };
     int misoPin_{ NO_PIN };
 
-    unsigned int baudRate_{ 5*1000*1000 };
-
-    std::shared_ptr<devices::SPIDevice> device_;
-
-protected:
+    unsigned speed_{ speed5MHz };
     bool selected_{ false };
 
 public:
     SPI() = default;
+    SPI(int csPin, int sclkPin, int mosiPin) : csPin_{csPin}, sclkPin_{sclkPin}, mosiPin_{mosiPin} {}
+    SPI(int csPin, int sclkPin, int mosiPin, int misoPin) : csPin_{csPin}, sclkPin_{sclkPin}, mosiPin_{mosiPin}, misoPin_{misoPin} {}
 
-    SPI(SPI const &) = delete;
+    ~SPI() = default;
     SPI(SPI &&) = default;
-    SPI &operator=(SPI const &) = delete;
     SPI &operator=(SPI &&) = default;
 
-    virtual ~SPI() = default;
-
     /**
-     * @brief Return the device connected to this interface. If there are multiple devices daisy-chained, they are assumed to be all of the same type.
+     * No copying of a SPI interface is allowed, because you'd lose sight of who owns it.
      */
-    std::shared_ptr<devices::SPIDevice> device() { return device_; }
+    SPI(SPI const &) = delete;
+    SPI &operator=(SPI const &) = delete;
 
     /**
-     * @brief Set the device connected to this interface. If there are multiple devices daisy-chained, they are assumed to be all of the same type.
-     */
-    void device(std::shared_ptr<devices::SPIDevice> dev) { device_ = dev; dev->interface(shared_from_this()); }
-
-    /**
-     * @brief Set the GPIO pin to be used for the Chip-Select (sometimes Chip Enable or CE) line. Setting the value forces a close.
+     * Set the GPIO pin to be used for the Chip-Select (sometimes Chip Enable or CE) line. Setting the value forces a close.
      */
     void csPin(unsigned pin) { close(); csPin_ = pin; }
 
     /**
-     * @brief Return the GPIO pin used for the Chip-Select (sometimes Chip Enable or CE) line.
+     * Return the GPIO pin used for the Chip-Select (sometimes Chip Enable or CE) line.
      */
     int csPin() const noexcept { return csPin_; }
 
     /**
-     * @brief Set the GPIO pin to be used for the clock signal. Setting the value forces a close.
+     * Set the GPIO pin to be used for the clock signal. Setting the value forces a close.
      */
     void sclkPin(unsigned pin) { close(); sclkPin_ = pin; }
 
     /**
-     * @brief Return the GPIO pin used for the clock signal.
+     * Return the GPIO pin used for the clock signal.
      */
     int sclkPin() const noexcept { return sclkPin_; }
 
     /**
-     * @brief Set the GPIO pin used for the Master-Out-Slave-In (sometimes Data-Out or TX) line. Setting the value forces a close.
+     * Set the GPIO pin used for the Master-Out-Slave-In (sometimes Data-Out or TX) line. Setting the value forces a close.
      */
     void mosiPin(unsigned pin) { close(); mosiPin_ = pin; }
 
     /**
-     * @brief Return the GPIO pin used for the Master-Out-Slave-In (sometimes Data-Out or TX) line.
+     * Return the GPIO pin used for the Master-Out-Slave-In (sometimes Data-Out or TX) line.
      */
     int mosiPin() const noexcept { return mosiPin_; }
 
     /**
-     * @brief Set if the connection is a 4-pin SPI interface, in which case a  full-duplex connection is used. Setting the value forces a close.
-     */
-    void is4Pin(bool fullDuplex) { close(); is4Pin_ = fullDuplex; }
-    /**
-     * @brief Indicate if this is a 4-pin SPI interface, in which case a full-duplex connection is used.
-     */
-    bool is4Pin() const noexcept { return is4Pin_; }
-
-    /**
-     * @brief Set the GPIO pin used for the Master-In-Slave-Out (sometimes Data-In or RX) line. Setting the value forces a close.
+     * Set the GPIO pin used for the Master-In-Slave-Out (sometimes Data-In or RX) line. Setting the value forces a close.
      */
     void misoPin(unsigned pin) { close(); misoPin_ = pin; }
 
     /**
-     * @brief Return the GPIO pin used for the Master-In-Slave-Out (sometimes Data-In or RX) line.
+     * Return the GPIO pin used for the Master-In-Slave-Out (sometimes Data-In or RX) line.
      */
     int misoPin() const noexcept { return misoPin_; }
 
     /**
-     * @brief Set the BAUD rate for this connection. Setting the value forces a close.
+     * Set if the connection is a 4-pin SPI interface, in which case a  full-duplex connection is used. Setting the value forces a close.
      */
-    void baudRate(unsigned baudRate) { close(); baudRate_ = baudRate; }
+    void set3Pin() { misoPin(NO_PIN); }
 
     /**
-     * @brief Return the BAUD rate used for this interface.
+     * Indicate if this is a 4-pin SPI interface, in which case a full-duplex connection is used.
      */
-    unsigned baudRate() const noexcept { return baudRate_; }
+    bool is4Pin() const noexcept { return misoPin_ == NO_PIN; }
 
     /**
-     * @brief Return if this interface has been correctly set up and can be used.
+     * Set the BAUD rate for this connection. Setting the value forces a close.
      */
-    virtual operator bool() const noexcept = 0;
+    void baudRate(unsigned baudRate) { close(); speed_ = baudRate; }
 
     /**
-     * @brief Initialize the connection, assuring the device is configured correctly.
+     * Return the BAUD rate used for this interface.
      */
-    virtual void open() = 0;
+    unsigned baudRate() const noexcept { return speed_; }
 
     /**
-     * @brief De-initialize the connection, releasing the device (pins) for other use.
+     * Return if this interface has been correctly set up and can be used.
      */
-    virtual void close() = 0;
+    operator bool() const noexcept { return static_cast<SpiClass*>(this)->initialized(); }
 
     /**
-     * @brief Reset the connection.
+     * Initialize the connection, assuring the device is configured correctly.
+     */
+    void open() { static_cast<SpiClass*>(this)->doOpen(); }
+
+    /**
+     * De-initialize the connection, releasing the device (pins) for other use.
+     */
+    void close() { static_cast<SpiClass*>(this)->doClose(); }
+
+    /**
+     * Reset the connection.
      */
     void reset() { close(); open(); }
 
     /**
-     * @brief Return if this interface is currently active, i.e. is the CS line is selected.
+     * Return if this interface is currently active, i.e. is the CS line is selected.
      */
     bool selected() { return selected_; }
 
     /**
-     * @brief Enable the CS line for this SPI chain.
+     * Enable the CS line for this SPI chain. (active low)
      */
-    virtual void select() = 0;
+    void select() { RaspberryPi::gpio().set(csPin(), false); selected_ = true; }
 
     /**
-     * @brief Release the CS line for this SPI chain.
+     * Release the CS line for this SPI chain.
      */
-    virtual void deselect() = 0;
+    void deselect() { RaspberryPi::gpio().set(csPin(), true); selected_ = false; }
 
     /**
-     * @brief Write the given set of bytes.
+     * Write the given set of bytes.
      */
-    virtual void write(const std::span<uint8_t> value) =0;
+    void write(const std::span<uint8_t> value) { static_cast<SpiClass*>(this)->doWrite(value); }
 
 };
 

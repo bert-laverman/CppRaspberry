@@ -30,38 +30,43 @@ namespace nl::rakis::raspberrypi::interfaces
 {
 
 
-class PicoSPI : public SPI
+inline spi_inst_t* default_spi(int busNr) { return (busNr == 0) ? spi0 : spi1; }
+
+
+class PicoSPI : public SPI<PicoSPI>
 {
     bool initialized_{ false };
     int busNr_;
     spi_inst_t *interface_;
 
-public:
-    PicoSPI(int busNr, unsigned csPin, unsigned sclkPin, unsigned mosiPin, unsigned misoPin);
-
-    PicoSPI();
-
-    PicoSPI(const PicoSPI &) = default;
-    PicoSPI(PicoSPI &&) = default;
-    PicoSPI &operator=(const PicoSPI &) = default;
-    PicoSPI &operator=(PicoSPI &&) = default;
-
-    virtual ~PicoSPI() = default;
-
-    bool initialized() const { return initialized_; }
     void initialized(bool init) { initialized_ = init; }
 
-    virtual operator bool() const noexcept override { return initialized(); }
+public:
+    PicoSPI()
+     : PicoSPI(PICO_DEFAULT_SPI, PICO_DEFAULT_SPI_CSN_PIN, PICO_DEFAULT_SPI_SCK_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_RX_PIN)
+     {}
+    PicoSPI(int busNr, int csPin, int sclkPin, int mosiPin)
+     : SPI(csPin, sclkPin, mosiPin), busNr_(busNr), interface_(default_spi(busNr_))
+     {}
+    PicoSPI(int busNr, int csPin, int sclkPin, int mosiPin, int misoPin)
+     : SPI(csPin, sclkPin, mosiPin, misoPin), busNr_(busNr), interface_(default_spi(busNr_))
+     {}
 
-    virtual void open() override;
+    PicoSPI(PicoSPI &&) = default;
+    PicoSPI &operator=(PicoSPI &&) = default;
 
-    virtual void close() override;
+    PicoSPI(const PicoSPI &) = delete;
+    PicoSPI &operator=(const PicoSPI &) = delete;
 
-    virtual void select() override;
+    ~PicoSPI() { doClose(); };
 
-    virtual void deselect() override;
+    bool initialized() const { return initialized_; }
 
-    virtual void write(const std::span<uint8_t> data) override;
+    void doOpen();
+
+    void doClose();
+
+    void doWrite(const std::span<uint8_t> data);
 
 };
 

@@ -30,10 +30,6 @@ void SPIDevSPI::validate()
 
 }
 
-bool SPIDevSPI::selected() const noexcept {
-    return false;
-}
-
 void SPIDevSPI::open()
 {
     if (fd_ < 0) {
@@ -86,20 +82,6 @@ void SPIDevSPI::close()
     }
 }
 
-
-void SPIDevSPI::select()
-{
-    if (verbose()) {
-        log() << "SPIDevSPI::select() not implemented\n";
-    }
-}
-
-void SPIDevSPI::deselect()
-{
-    if (verbose()) {
-        log() << "SPIDevSPI::deselect() not implemented\n";
-    }
-}
 
 void SPIDevSPI::write(std::span<uint8_t> data)
 {

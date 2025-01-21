@@ -45,12 +45,13 @@ struct MAX7219Module {
 };
 
 /**
- * @brief Represents a MAX7219 device or a (daisy-chained) set of MAX7219 devices.
+ * Represents a MAX7219 device or a (daisy-chained) set of MAX7219 devices.
  * 
  * This class provides an interface to control a MAX7219 device using SPI communication.
  * It allows setting brightness, scan limit, decode mode, and other parameters of the device.
  * It also provides methods to display numbers and clear the display.
  */
+template <class MaxClass>
 class MAX7219 {
     std::vector<MAX7219Module> buffer_;
 
@@ -63,31 +64,31 @@ class MAX7219 {
     bool writeImmediately_{ true };
 
 protected:
-    inline std::vector<MAX7219Module>& buffer() { return buffer_; }
+    std::vector<MAX7219Module>& buffer() { return buffer_; }
 
-    inline void storeBrightness(unsigned module, uint8_t brightness) {
+    void storeBrightness(unsigned module, uint8_t brightness) {
         buffer_[module].brightness = brightness;
         setDirtyBrightness();
     }
 
-    inline void storeScanLimit(unsigned module, uint8_t scanLimit) {
+    void storeScanLimit(unsigned module, uint8_t scanLimit) {
         buffer_[module].scanLimit = scanLimit;
         setDirtyScanLimit();
     }
 
-    inline void storeDecodeMode(unsigned module, uint8_t decodeMode) {
+    void storeDecodeMode(unsigned module, uint8_t decodeMode) {
         buffer_[module].decodeMode = decodeMode;
         setDirtyDecodeMode();
     }
 
-    void numDevicesChanged(unsigned num) {
+    void resizeBuffer(unsigned num) {
         buffer_.resize(num);
     }
 
 public:
     // Constructing and destructing is no issue.
     MAX7219() = default;
-    virtual ~MAX7219() = default;
+    ~MAX7219() = default;
 
     MAX7219(MAX7219 const&) = default;
     MAX7219(MAX7219&&) = default;
@@ -95,39 +96,39 @@ public:
     MAX7219& operator=(MAX7219&&) = default;
 
     /**
-     * @brief Gets the write immediately flag.
+     * Gets the write immediately flag.
      * 
      * @return true if write immediately is enabled, false otherwise.
      */
-    inline bool writeImmediately() const { return writeImmediately_; }
+    bool writeImmediately() const { return writeImmediately_; }
 
     /**
-     * @brief Sets the write immediately flag.
+     * Sets the write immediately flag.
      * 
      * @param value The value to set for the write immediately flag.
      */
-    inline void writeImmediately(bool value) { writeImmediately_ = value; }
+    void writeImmediately(bool value) { writeImmediately_ = value; }
 
-    inline void setDirtyBrightness() { dirtyBrightness_ = true; }
-    inline void resetDirtyBrightness() { dirtyBrightness_ = false; }
-    inline bool isDirtyBrightness() const { return dirtyBrightness_; }
+    void setDirtyBrightness() { dirtyBrightness_ = true; }
+    void resetDirtyBrightness() { dirtyBrightness_ = false; }
+    bool isDirtyBrightness() const { return dirtyBrightness_; }
 
-    inline void setDirtyScanLimit() { dirtyScanLimit_ = true; }
-    inline void resetDirtyScanLimit() { dirtyScanLimit_ = false; }
-    inline bool isDirtyScanLimit() const { return dirtyScanLimit_; }
+    void setDirtyScanLimit() { dirtyScanLimit_ = true; }
+    void resetDirtyScanLimit() { dirtyScanLimit_ = false; }
+    bool isDirtyScanLimit() const { return dirtyScanLimit_; }
 
-    inline void setDirtyDecodeMode() { dirtyDecodeMode_ = true; }
-    inline void resetDirtyDecodeMode() { dirtyDecodeMode_ = false; }
-    inline bool isDirtyDecodeMode() const { return dirtyDecodeMode_; }
+    void setDirtyDecodeMode() { dirtyDecodeMode_ = true; }
+    void resetDirtyDecodeMode() { dirtyDecodeMode_ = false; }
+    bool isDirtyDecodeMode() const { return dirtyDecodeMode_; }
 
-    inline void setDirtyBuffer() { dirtyBuffer_ = true; }
-    inline void resetDirtyBuffer() { dirtyBuffer_ = false; }
-    inline bool isDirtyBuffer() const { return dirtyBuffer_; }
+    void setDirtyBuffer() { dirtyBuffer_ = true; }
+    void resetDirtyBuffer() { dirtyBuffer_ = false; }
+    bool isDirtyBuffer() const { return dirtyBuffer_; }
 
     /**
-     * @brief Marks all cached data is clean, i.e., the same as what is shown on the display.
+     * Marks all cached data is clean, i.e., the same as what is shown on the display.
      */
-    inline void setClean() {
+    void setClean() {
         resetDirtyBrightness();
         resetDirtyScanLimit();
         resetDirtyDecodeMode();
@@ -135,9 +136,9 @@ public:
     }
 
     /**
-     * @brief Marks all cached data as dirty, i.e., different from what is shown on the display.
+     * Marks all cached data as dirty, i.e., different from what is shown on the display.
      */
-    inline void setDirty() {
+    void setDirty() {
         setDirtyBrightness();
         setDirtyScanLimit();
         setDirtyDecodeMode();
@@ -145,30 +146,30 @@ public:
     }
 
     /**
-     * @brief Gets the padding flag.
+     * Gets the padding flag.
      * 
      * @return true if padding is enabled, false otherwise.
      */
-    inline bool padding() const { return padding_; }
+    bool padding() const { return padding_; }
 
     /**
-     * @brief Sets the padding flag.
+     * Sets the padding flag.
      * 
      * @param value The value to set for the padding flag.
      */
-    inline void padding(bool value) { padding_ = value; }
+    void padding(bool value) { padding_ = value; }
 
     // Access the cached values
-    inline uint8_t getBrightness(uint8_t module) const { return buffer_[module].brightness; }
-    inline uint8_t getScanLimit(uint8_t module) const { return buffer_[module].scanLimit; }
-    inline uint8_t getDecodeMode(uint8_t module) const { return buffer_[module].decodeMode; }
-    inline bool hasValue(uint8_t module) const { return buffer_[module].hasValue; }
-    inline int32_t getValue(uint8_t module) const { return buffer_[module].value; }
+    uint8_t getBrightness(uint8_t module) const { return buffer_[module].brightness; }
+    uint8_t getScanLimit(uint8_t module) const { return buffer_[module].scanLimit; }
+    uint8_t getDecodeMode(uint8_t module) const { return buffer_[module].decodeMode; }
+    bool hasValue(uint8_t module) const { return buffer_[module].hasValue; }
+    int32_t getValue(uint8_t module) const { return buffer_[module].value; }
 
     // The actions we can take on this device
 
     /**
-     * @brief Sets the brightness level of all MAX7219 devices.
+     * Sets the brightness level of all MAX7219 devices.
      * 
      * @param value The brightness level to set (0-15).
      */
@@ -181,7 +182,7 @@ public:
     }
 
     /**
-     * @brief Sets the brightness of a specific MAX7219 device.
+     * Sets the brightness of a specific MAX7219 device.
      * 
      * @param module The position of the MAX7219 device.
      * @param value The brightness value to set (0-15).
@@ -193,7 +194,7 @@ public:
     }
 
     /**
-     * @brief Sets the scan limit of all MAX7219 devices.
+     * Sets the scan limit of all MAX7219 devices.
      * 
      * @param value The scan limit value to set (0-7).
      */
@@ -206,7 +207,7 @@ public:
     }
 
     /**
-     * @brief Sets the scan limit of a specific MAX7219 device.
+     * Sets the scan limit of a specific MAX7219 device.
      * 
      * @param module The position of the MAX7219 device.
      * @param value The scan limit value to set (0-7).
@@ -218,7 +219,7 @@ public:
     }
 
     /**
-     * @brief Sets the decode mode for all MAX7219 devices.
+     * Sets the decode mode for all MAX7219 devices.
      *
      * @param value The value to set for the decode mode.
      */
@@ -231,7 +232,7 @@ public:
     }
 
     /**
-     * @brief Sets the decode mode of a specific MAX7219 device.
+     * Sets the decode mode of a specific MAX7219 device.
      * 
      * @param module The position of the MAX7219 device.
      * @param value The decode mode value to set (0-255).
@@ -243,54 +244,54 @@ public:
     }
 
     /**
-     * @brief Shuts down all MAX7219 devices.
+     * Shuts down all MAX7219 devices.
      * 
      * This function sends the shutdown command to the MAX7219 device, 
      * which turns off all the LEDs and stops the display operation.
      */
-    virtual void shutdown() = 0;
+    void shutdown() { static_cast<MaxClass*>(this)->doShutdown(); }
 
     /**
-     * @brief Shuts down a specific MAX7219 device.
+     * Shuts down a specific MAX7219 device.
      * 
      * @param module The position of the MAX7219 device.
      */
-    virtual void shutdown(uint8_t module) = 0;
+    void shutdown(uint8_t module) {static_cast<MaxClass*>(this)->doShutdown(module); }
 
     /**
-     * @brief Performs the startup procedure for all MAX7219 devices.
+     * Performs the startup procedure for all MAX7219 devices.
      * 
      * This function sends the necessary commands to initialize the MAX7219 device.
      * It sets the shutdown mode to normal operation.
      */
-    virtual void startup() = 0;
+    void startup() { static_cast<MaxClass*>(this)->doStartup(); }
 
     /**
-     * @brief Starts up a specific MAX7219 device.
+     * Starts up a specific MAX7219 device.
      * 
      * @param module The position of the MAX7219 device.
      */
-    virtual void startup(uint8_t module) = 0;
+    void startup(uint8_t module) { static_cast<MaxClass*>(this)->doStartup(module); }
 
     /**
-     * @brief Performs a display test on all MAX7219 devices.
+     * Performs a display test on all MAX7219 devices.
      * 
      * @param value The value to set for the display test. Non-zero value turns on the test, while zero turns it off.
      */
-    virtual void displayTest(uint8_t value) = 0;
+    void displayTest(uint8_t value) { static_cast<MaxClass*>(this)->doDisplayTest(value); }
 
     /**
-     * @brief Performs a display test on a specific MAX7219 device.
+     * Performs a display test on a specific MAX7219 device.
      * 
      * @param module The position of the MAX7219 device.
      * @param value The display test value to set (0-1).
      */
-    virtual void displayTest(uint8_t module, uint8_t value) = 0;
+    void displayTest(uint8_t module, uint8_t value) { static_cast<MaxClass*>(this)->doDisplayTest(module, value); }
 
     /**
-     * @brief Clears the display of all MAX7219 devices.
+     * Clears the display of all MAX7219 devices.
      */
-    virtual void clear() {
+    void clear() {
         for (auto& module : buffer()) {
             module.hasValue = false;
             module.value = 0;
@@ -301,11 +302,11 @@ public:
     }
 
     /**
-     * @brief Clears the display of a specific MAX7219 device.
+     * Clears the display of a specific MAX7219 device.
      * 
      * @param module The module number of the MAX7219 device.
      */
-    virtual void clear(uint8_t module) {
+    void clear(uint8_t module) {
         auto& buf = buffer() [module];
 
         buf.hasValue = false;
@@ -317,12 +318,12 @@ public:
     }
 
     /**
-     * @brief Sets a number to be displayed on a specific MAX7219 device.
+     * Sets a number to be displayed on a specific MAX7219 device.
      * 
      * @param module The module number of the MAX7219 device.
      * @param value The number to be displayed.
      */
-    virtual void setNumber(uint8_t module, int32_t value) {
+    void setNumber(uint8_t module, int32_t value) {
         auto& buf = buffer() [module];
         buf.hasValue = true;
         buf.value = value;
@@ -349,36 +350,36 @@ public:
     }
 
     /**
-     * @brief Reset the attached modules.
+     * Reset the attached modules.
      */
-    virtual void reset() = 0;
+    void reset() { static_cast<MaxClass*>(this)->doReset(); }
     /**
-     * @brief Sends the cached brightness levels.
+     * Sends the cached brightness levels.
      */
-    virtual void sendBrightness() = 0;
+    void sendBrightness() { static_cast<MaxClass*>(this)->doSendBrightness(); }
 
     /**
-     * @brief Sends the cached scan limits.
+     * Sends the cached scan limits.
      */
-    virtual void sendScanLimit() = 0;
+    void sendScanLimit() { static_cast<MaxClass*>(this)->doSendScanLimit(); }
 
     /**
-     * @brief Sends the cached decode modes.
+     * Sends the cached decode modes.
      */
-    virtual void sendDecodeMode() = 0;
+    void sendDecodeMode() { static_cast<MaxClass*>(this)->doSendDecodeMode(); }
 
     /**
-     * @brief Sends the cached display data.
+     * Sends the cached display data.
      */
-    virtual void sendBuffer() = 0;
+    void sendBuffer() { static_cast<MaxClass*>(this)->doSendBuffer(); }
 
 
     /**
-     * @brief Sends the display data to the MAX7219 device.
+     * Sends the display data to the MAX7219 device.
      * 
      * This method sends the display data stored in the buffer to the MAX7219 device.
      */
-    virtual void sendData() {
+    void sendData() {
         if (isDirtyBrightness()) { sendBrightness(); }
         if (isDirtyScanLimit()) { sendScanLimit(); }
         if (isDirtyDecodeMode()) { sendDecodeMode(); }
@@ -387,7 +388,7 @@ public:
     }
 
     /**
-     * @brief Directly set the buffer's contents.
+     * Directly set the buffer's contents.
      */
     void setBuffer(uint8_t module, std::span<uint8_t> data) {
         if (data.size() != MAX7219_DIGITS) {

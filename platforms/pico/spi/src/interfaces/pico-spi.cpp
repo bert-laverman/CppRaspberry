@@ -28,25 +28,9 @@
 using namespace nl::rakis::raspberrypi::interfaces;
 
 
-static std::array<spi_inst_t*, 2> default_spi{{ spi0, spi1 }};
 
 
-PicoSPI::PicoSPI(int busNr, unsigned cs, unsigned sclk, unsigned mosi, unsigned miso)
-    : busNr_(busNr), interface_(default_spi[busNr_])
-{
-    csPin(cs);
-    sclkPin(sclk);
-    mosiPin(mosi);
-    misoPin(miso);
-}
-
-
-PicoSPI::PicoSPI() : PicoSPI(PICO_DEFAULT_SPI, PICO_DEFAULT_SPI_CSN_PIN, PICO_DEFAULT_SPI_SCK_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_RX_PIN)
-{
-}
-
-
-void PicoSPI::open()
+void PicoSPI::doOpen()
 {
     if (initialized()) {
         return;
@@ -72,30 +56,12 @@ void PicoSPI::open()
     initialized(true);
 }
 
-void PicoSPI::close()
+void PicoSPI::doClose()
 {
     if (verbose()) { printf("Closing SPI interface\n"); }
 }
 
-void PicoSPI::select()
-{
-    open();
-
-    selected_ = true;
-    asm volatile("nop \n nop \n nop");
-    RaspberryPi::gpio().set(csPin(), false);
-    asm volatile("nop \n nop \n nop");
-}
-
-void PicoSPI::deselect()
-{
-    selected_ = false;
-    asm volatile("nop \n nop \n nop");
-    RaspberryPi::gpio().set(csPin(), true);
-    asm volatile("nop \n nop \n nop");
-}
-
-void PicoSPI::write(const std::span<uint8_t> data)
+void PicoSPI::doWrite(const std::span<uint8_t> data)
 {
     open();
 

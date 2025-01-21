@@ -25,21 +25,9 @@
 #include <interfaces/gpio.hpp>
 
 
-namespace nl::rakis::raspberrypi::interfaces {
-    class I2C;
-    class SPI;
-} // namespace nl::rakis::raspberrypi::interfaces
-
 namespace nl::rakis::raspberrypi {
 
 class RaspberryPi : public util::VerboseComponent {
-
-#if defined(HAVE_I2C)
-    std::map<std::string, std::shared_ptr<interfaces::I2C>> i2c_;
-#endif
-#if defined(HAVE_SPI)
-    std::map<std::string, std::shared_ptr<interfaces::SPI>> spi_;
-#endif
 
 public:
     RaspberryPi() = default;
@@ -68,59 +56,6 @@ public:
     static interfaces::GPIO& gpio();
 
     operator interfaces::GPIO&() { return gpio(); }
-
-#if defined(HAVE_I2C)
-
-    /**
-     * @brief Return the I2C interface with the given name.
-     */
-    std::shared_ptr<interfaces::I2C> i2c(std::string name) {
-        auto it = i2c_.find(name);
-        if (it != i2c_.end()) return it->second;
-        return std::shared_ptr<interfaces::I2C>();
-    }
-
-    /**
-     * @brief Add the given I2C interface.
-     */
-    auto addI2C(std::string name, std::shared_ptr<interfaces::I2C> i2c) {
-        i2c_ [name] = i2c;
-        return i2c_ [name];
-    }
-
-    template <typename S, typename... Args>
-    auto addI2C(std::string name, Args&&... args) {
-        i2c_ [name] = std::make_shared<S>(std::forward<Args>(args)...);
-        return i2c_ [name];
-    }
-
-    /**
-     * @brief Check if we have an I2C interface at the given pins.
-     */
-    bool haveI2C(unsigned sdaPin, unsigned sclPin);
-
-#endif
-
-#if defined(HAVE_SPI)
-
-    inline std::shared_ptr<interfaces::SPI> spi(std::string name) {
-        auto it = spi_.find(name);
-        if (it != spi_.end()) return it->second;
-        return std::shared_ptr<interfaces::SPI>();
-    }
-
-    auto addSPI(std::string name, std::shared_ptr<interfaces::SPI> spi) {
-        spi_ [name] = spi;
-        return spi_ [name];
-    }
-
-    template <typename S, typename... Args>
-    auto addSPI(std::string name, Args&&... args) {
-        spi_ [name] = std::make_shared<S>(std::forward<Args>(args)...);
-        return spi_ [name];
-    }
-
-#endif
 
 };
 

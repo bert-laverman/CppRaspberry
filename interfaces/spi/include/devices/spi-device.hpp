@@ -1,6 +1,6 @@
 #pragma once
 /*
- * Copyright (c) 2024 by Bert Laverman. All Rights Reserved.
+ * Copyright (c) 2024-2025 by Bert Laverman. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,8 @@
 #include <span>
 #include <memory>
 
-
 #include <util/verbose-component.hpp>
-
-
-namespace nl::rakis::raspberrypi::interfaces {
-    class SPI;
-} // namespace nl::rakis::raspberrypi::interfaces
+#include <interfaces/spi.hpp>
 
 
 namespace nl::rakis::raspberrypi::devices {
@@ -34,29 +29,24 @@ namespace nl::rakis::raspberrypi::devices {
 /**
  * @brief This represents a device connected to a SPI interface, possibly daisy-chained.
  */
+template <class SpiClass>
 class SPIDevice : public util::VerboseComponent
 {
-    std::shared_ptr<interfaces::SPI> spi_;
-    unsigned numDevices_{ 1 };
+    SpiClass& spi_;
 
 protected:
     virtual void numDevicesChanged() = 0;
 
 public:
-    SPIDevice() {}
+    SPIDevice(SpiClass& spi) : spi_(spi) {}
+    ~SPIDevice() {}
 
-    SPIDevice(const SPIDevice&) = delete;
+    SPIDevice(const SPIDevice&) = default;
     SPIDevice(SPIDevice&&) = default;
-    SPIDevice& operator=(const SPIDevice&) = delete;
+    SPIDevice& operator=(const SPIDevice&) = default;
     SPIDevice& operator=(SPIDevice&&) = default;
 
-    virtual ~SPIDevice() = default;
-
-    std::shared_ptr<interfaces::SPI> interface() const { return spi_; }
-    void interface(std::shared_ptr<interfaces::SPI> spi) { spi_ = spi; }
-
-    unsigned numDevices() const noexcept { return numDevices_; }
-    void numDevices(unsigned num) { numDevices_ = num; numDevicesChanged(); }
+    SpiClass& interface() const { return spi_; }
 
 };
 

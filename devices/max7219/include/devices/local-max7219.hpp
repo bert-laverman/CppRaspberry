@@ -21,19 +21,27 @@
 #endif
 
 #include <interfaces/spi.hpp>
+#include <devices/spi-device.hpp>
+#include <devices/chainable-spi-device.hpp>
+
 #include <devices/max7219.hpp>
 
 
 namespace nl::rakis::raspberrypi::devices {
 
 /**
- * @brief Represents a MAX7219 device or a (daisy-chained) set of MAX7219 devices.
+ * Represents a MAX7219 device or a (daisy-chained) set of MAX7219 devices.
  * 
  * This class provides an interface to control a MAX7219 device using SPI communication.
  * It allows setting brightness, scan limit, decode mode, and other parameters of the device.
  * It also provides methods to display numbers and clear the display.
  */
-class LocalMAX7219 : public MAX7219, public SPIDevice {
+template <class SpiClass>
+class LocalMAX7219
+    : public MAX7219<LocalMAX7219<SpiClass>>
+    , public SPIDevice<SpiClass>
+    , public ChainableSPIDevice<LocalMAX7219<SpiClass>>
+{
 
     // Constants for MAX7219 commands
     constexpr static const uint8_t CMD_NOOP   = 0x00;
@@ -54,18 +62,14 @@ class LocalMAX7219 : public MAX7219, public SPIDevice {
     // Buffer for NOOP command
     constexpr static std::array<uint8_t, 2> BUF_NOOP{CMD_NOOP, 0};
 
-    virtual void numDevicesChanged() override {
-        MAX7219::numDevicesChanged(numDevices());
-    }
-
 public:
     /**
-     * @brief Constructs a MAX7219 object.
+     * Constructs a MAX7219 object.
      * 
      * @param spi The SPI interface to communicate with the device.
      */
-    LocalMAX7219() {
-        MAX7219::numDevicesChanged(numDevices());   // Make sure everyone agrees
+    LocalMAX7219(SpiClass& spi) : SPIDevice<SpiClass>(spi) {
+        this->resizeBuffer(this->numDevices());   // Make sure everyone agrees
     }
 
     LocalMAX7219(const LocalMAX7219&) = default;
@@ -73,168 +77,172 @@ public:
     LocalMAX7219& operator=(const LocalMAX7219&) = default;
     LocalMAX7219& operator=(LocalMAX7219&&) = default;
 
-    virtual ~LocalMAX7219() {}
+    ~LocalMAX7219() {}
+
+    void numDevicesChanged() {
+        this->resizeBuffer(this->numDevices());
+    }
 
 
 protected:
 
     /**
-     * @brief Send a single command to all modules.
+     * Send a single command to all modules.
      */
     void sendAll(uint8_t cmd, uint8_t par =0) {
-        const unsigned size{ numDevices() * 2 };
+        const unsigned size{ this->numDevices() * 2 };
         std::vector<uint8_t> buf(size, par);
 
         for (unsigned i{0}; i < size; i += 2) {
             buf [i] = cmd;
         }
-        interface()->write(buf);
+        this->interface().write(buf);
     }
 
     /**
-     * @brief Send a command to one module, CMD_NOOP to all the others.
+     * Send a command to one module, CMD_NOOP to all the others.
      */
     void sendOne(unsigned mod, uint8_t cmd, uint8_t par =0) {
-        const unsigned size{ numDevices() * 2 };
+        const unsigned size{ this->numDevices() * 2 };
         std::vector<uint8_t> buf(size, par);
 
         for (unsigned i{0}; i < size; i += 2) {
             buf [i] = (i == mod*2) ? cmd : CMD_NOOP;
         }
-        interface()->write(buf);
+        this->interface().write(buf);
     }
 
     void sendEach(std::function<void(unsigned mod, uint8_t& cmd, uint8_t& par)> getData) {
-        const unsigned size{ numDevices() * 2 };
+        const unsigned size{ this->numDevices() * 2 };
         std::vector<uint8_t> buf(size, 0);
 
         for (unsigned i{0},mod{0}; i < size; i += 2, mod++) {
             getData(mod, buf[i], buf[i+1]);
         }
-        interface()->write(buf);
+        this->interface().write(buf);
     }
 
 public:
 
     /**
-     * @brief Shuts down all MAX7219 devices.
+     * Shuts down all MAX7219 devices.
      * 
      * This function sends the shutdown command to the MAX7219 device, 
      * which turns off all the LEDs and stops the display operation.
      */
-    void shutdown() override {
+    void doShutdown() {
         sendAll(CMD_SHUTDOWN);
     }
 
     /**
-     * @brief Shuts down a specific MAX7219 device.
+     * Shuts down a specific MAX7219 device.
      * 
      * @param pos The position of the MAX7219 device.
      */
-    void shutdown(uint8_t pos) override {
+    void doShutdown(uint8_t pos) {
         sendOne(pos, CMD_SHUTDOWN);
     }
 
     /**
-     * @brief Performs the startup procedure for all MAX7219 devices.
+     * Performs the startup procedure for all MAX7219 devices.
      * 
      * This function sends the necessary commands to initialize the MAX7219 device.
      * It sets the shutdown mode to normal operation.
      */
-    void startup() override {
+    void doStartup() {
         sendAll(CMD_SHUTDOWN, 1);
     }
 
     /**
-     * @brief Starts up a specific MAX7219 device.
+     * Starts up a specific MAX7219 device.
      * 
      * @param pos The position of the MAX7219 device.
      */
-    void startup(uint8_t pos) override {
+    void doStartup(uint8_t pos) {
         sendOne(pos, CMD_SHUTDOWN, 1);
     }
 
     /**
-     * @brief Performs a display test on all MAX7219 devices.
+     * Performs a display test on all MAX7219 devices.
      * 
      * @param value The value to set for the display test. Non-zero value turns on the test, while zero turns it off.
      */
-    void displayTest(uint8_t value) override {
+    void doDisplayTest(uint8_t value) {
         sendAll(CMD_DISPLAYTEST, value);
     }
 
     /**
-     * @brief Performs a display test on a specific MAX7219 device.
+     * Performs a display test on a specific MAX7219 device.
      * 
      * @param pos The position of the MAX7219 device.
      * @param value The display test value to set (0-1).
      */
-    void displayTest(uint8_t pos, uint8_t value) override {
+    void doDisplayTest(uint8_t pos, uint8_t value) {
         sendOne(pos, CMD_DISPLAYTEST, value);
     }
 
     /**
-     * @brief Reset the attached modules.
+     * Reset the attached modules.
      */
-     void reset() override {
-        writeImmediately(true);
-        shutdown();
-        displayTest(0);
-        setScanLimit(7);
-        setDecodeMode(255);
-        startup();
-        setBrightness(7);
-        clear();
-        writeImmediately(false);
+     void doReset() {
+        this->writeImmediately(true);
+        this->shutdown();
+        this->displayTest(0);
+        this->setScanLimit(7);
+        this->setDecodeMode(255);
+        this->startup();
+        this->setBrightness(7);
+        this->clear();
+        this->writeImmediately(false);
      }
 
     /**
-     * @brief Sends the cached brightness levels to all modules.
+     * Sends the cached brightness levels to all modules.
      */
-    void sendBrightness() override {
+    void doSendBrightness() {
         sendEach([this](unsigned mod, uint8_t& cmd, uint8_t& par) {
             cmd = CMD_BRIGHTNESS;
-            par = buffer()[mod].brightness;
+            par = this->buffer()[mod].brightness;
         });
-        resetDirtyBrightness();
+        this->resetDirtyBrightness();
     }
 
     /**
-     * @brief Sends the cached scan limits to all modules.
+     * Sends the cached scan limits to all modules.
      */
-    void sendScanLimit() override {
+    void doSendScanLimit() {
         sendEach([this](unsigned mod, uint8_t& cmd, uint8_t& par) {
             cmd = CMD_SCANLIMIT;
-            par = buffer()[mod].scanLimit;
+            par = this->buffer()[mod].scanLimit;
         });
-        resetDirtyScanLimit();
+        this->resetDirtyScanLimit();
     }
 
     /**
-     * @brief Sends the cached decode modes to all modules.
+     * Sends the cached decode modes to all modules.
      */
-    void sendDecodeMode() override {
+    void doSendDecodeMode() {
         sendEach([this](unsigned mod, uint8_t& cmd, uint8_t& par) {
             cmd = CMD_DECODEMODE;
-            par = buffer()[mod].decodeMode;
+            par = this->buffer()[mod].decodeMode;
         });
-        resetDirtyDecodeMode();
+        this->resetDirtyDecodeMode();
     }
 
     /**
-     * @brief Sends the display data to the MAX7219 device.
+     * Sends the display data to the MAX7219 device.
      * 
      * This method sends the display data stored in the buffer to the MAX7219 device.
      */
-    void sendBuffer() override {
-        if (isDirtyBuffer()) {
+    void doSendBuffer() {
+        if (this->isDirtyBuffer()) {
             for (unsigned pos = 0; pos < 8; ++pos) {
                 sendEach([this, pos](unsigned mod, uint8_t& cmd, uint8_t& par) {
                     cmd = CMD_DIGIT0 + pos;
-                    par = buffer()[mod].buffer[pos];
+                    par = this->buffer()[mod].buffer[pos];
                 });
             }
-            resetDirtyBuffer();
+            this->resetDirtyBuffer();
         }
     }
 };
