@@ -27,6 +27,7 @@
 #include <raspberry-pi.hpp>
 #include <util/named-component.hpp>
 #include <util/verbose-component.hpp>
+#include <interfaces/gpio.hpp>
 #include <devices/spi-device.hpp>
 
 
@@ -37,6 +38,7 @@ static constexpr unsigned speed5MHz = 5'000'000;
 static constexpr unsigned speed10MHz = 10'000'000;
 static constexpr unsigned speed20MHz = 20'000'000;
 
+
 /**
  * This class represents a SPI interface, which can have zero or more (daisy-chained) devices connected to it.
  *
@@ -45,9 +47,6 @@ static constexpr unsigned speed20MHz = 20'000'000;
 template <class SpiClass>
 class SPI : public util::VerboseComponent, public util::NamedComponent
 {
-public:
-    static constexpr int NO_PIN{ -1 };
-
 private:
     int csPin_{ NO_PIN };
     int sclkPin_{ NO_PIN };
@@ -120,7 +119,7 @@ public:
     /**
      * Indicate if this is a 4-pin SPI interface, in which case a full-duplex connection is used.
      */
-    bool is4Pin() const noexcept { return misoPin_ == NO_PIN; }
+    bool is4Pin() const noexcept { return misoPin_ != NO_PIN; }
 
     /**
      * Set the BAUD rate for this connection. Setting the value forces a close.

@@ -26,6 +26,7 @@ extern "C" {
 #include <exception>
 #include <stdexcept>
 
+#include <iostream>
 
 #include <interfaces/gpio.hpp>
 
@@ -33,8 +34,23 @@ extern "C" {
 using namespace nl::rakis::raspberrypi::interfaces;
 
 
-static constexpr unsigned int NumGPIO{ 28 };
+/**
+ * The actual number of GPIO pins available on a Pico.
+ */
+static constexpr unsigned NumGPIO{ 28 };
 
+
+/**
+ * Whether the pin is used or not.
+ */
+std::bitset<GPIO::MaxGPIO> GPIO::gpioUsed_;
+
+
+/**
+ * The mode of each pin.
+ * 
+ * TODO Deprecate this?
+ */
 static std::array<GPIOMode, NumGPIO> mode_{{
     GPIOMode::Unused,       // GPIO  0: Pin 27, default I2C-0 SDA (EEPROM Data)
     GPIOMode::Unused,       // GPIO  1: Pin 28, default I2C-0 SCL (EEPROM Clock)
@@ -67,43 +83,17 @@ static std::array<GPIOMode, NumGPIO> mode_{{
 }};
 
 
-inline static GPIOMode mode(unsigned pin) {
-    return (pin >= NumGPIO) ? GPIOMode::Unavailable : mode_[pin];
-}
-
-bool GPIO::direct() const noexcept
-{
-    return true;
-}
-
-unsigned GPIO::numPins() const noexcept
-{
-    return NumGPIO;
-}
-
-bool GPIO::validPin(unsigned pin) const noexcept
-{
-    return mode(pin) != GPIOMode::Unavailable;
-}
-
-bool GPIO::used(unsigned pin) const noexcept
-{
-    return mode(pin) < GPIOMode::Unused;
-}
-
-bool GPIO::available(unsigned pin) const noexcept
-{
-    return mode(pin) == GPIOMode::Unused;
-}
-
-void GPIO::claim(unsigned pin, GPIOMode m)
-{
-    mode_[pin] = m;
-}
-
-
+/**
+ * Since we're using the pigpiod library, we need to open a channel to it.
+ */
 static int gpioChannel{ -1 };
 
+
+/**
+ * Open a channel to pigpiod. This function is idempotent.
+ * 
+ * @throws std::runtime_error if the channel cannot be opened.
+ */
 static void openChannel()
 {
     if (gpioChannel < 0) {
@@ -114,26 +104,118 @@ static void openChannel()
     }
 }
 
-static void closeChannel()
+
+/**
+ * Close the channel to pigpiod. If closing the connection fails, a message can be logged, but no exception is thrown.
+ * 
+ * @param verbose If true, log a message to stderr.
+ */
+static void closeChannel(bool verbose =false)
 {
     if (gpioChannel >= 0) {
+        if (verbose) {
+            std::cerr << "Closing channel to pigpiod for GPIO.\n";
+        }
         pigpio_stop(gpioChannel);
         gpioChannel = -1;
     }
 }
 
+
+/**
+ * Initialize the GPIO interface.
+ */
 GPIO::GPIO()
 {
-    openChannel();
+    gpioUsed_.reset();
+
+    // Mark all unavailable pins as used.
+    for (unsigned i = 0; i < NumGPIO; i++) {
+        if (mode_[i] == GPIOMode::Unavailable) {
+            gpioUsed_.set(i);
+        }
+    }
 }
 
+
+/**
+ * Release all pins.
+ */
 GPIO::~GPIO()
 {
+    // Release all pins.
+    for (unsigned i = 0; i < NumGPIO; i++) {
+        if (used(i)) {
+            release(i);
+        }
+    }
     closeChannel();
 }
 
+
+/**
+ * Return the mode of a pin.
+ *
+ * @param pin The pin number.
+ * @return The mode of the pin.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
+inline static GPIOMode& mode(unsigned pin) {
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
+    }
+    return mode_[pin];
+}
+
+
+/**
+ * Indicate if this interface is directly connected to the board, rather than through a GPIO expander.
+ */
+bool GPIO::direct() const noexcept
+{
+    return true;
+}
+
+
+/**
+ * Return the number of pins available.
+ *
+ * @return The number of pins available.
+ */
+unsigned GPIO::numPins() const noexcept
+{
+    return NumGPIO;
+}
+
+
+/**
+ * Set a pin's availability or use
+ * @param pin The pin number.
+ * @return true if the pin is available, false if it is in use.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
+void GPIO::claim(unsigned pin, GPIOMode m)
+{
+    mode(pin) = m;
+    gpioUsed_.set(pin, m != GPIOMode::Unused);
+}
+
+
+/**
+ * Initialize a pin for use.
+ * 
+ * @param pin The pin number.
+ * @param m The mode to set the pin to.
+ * @throws std::out_of_range if the pin number is out of range.
+ * @throws std::runtime_error if the pin is not available.
+ */
 void GPIO::init(unsigned pin, GPIOMode m)
 {
+    if (gpioChannel < 0) {
+        log("Opening channel to pigpiod for GPIO.");
+        openChannel();
+    }
+
     if (m == GPIOMode::Unused) {
         if (used(pin)) {
             log(std::format("Releasing pin {}.", pin));
@@ -145,39 +227,101 @@ void GPIO::init(unsigned pin, GPIOMode m)
     }
     if (!available(pin)) {
         log(std::format("Pin {} is not available.", pin));
-        throw new std::runtime_error("Pin not available.");
+        throw std::runtime_error("Pin not available.");
     }
     log(std::format("Claiming pin {}.", pin));
 
-    mode_[pin] = m;
+    mode(pin) = m;
 }
 
+
+/**
+ * Set the given pin as used for output.
+ * 
+ * @param pin The pin to set for output.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 void GPIO::setForOutput(unsigned pin)
 {
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
+    }
+    if (gpioChannel < 0) {
+        log("Opening channel to pigpiod for GPIO.");
+        openChannel();
+    }
+
     auto result = set_mode(gpioChannel, pin, PI_OUTPUT);
     if (result < 0) {
         log(std::format("Unable to set pin {} for output (error={}).", pin, result));
     }
 }
 
+
+
+
+/**
+ * Set the given pin as used for input.
+ * 
+ * @param pin The pin to set for input.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 void GPIO::setForInput(unsigned pin)
 {
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
+    }
+    if (gpioChannel < 0) {
+        log("Opening channel to pigpiod for GPIO.");
+        openChannel();
+    }
+
     auto result = set_mode(gpioChannel, pin, PI_INPUT);
     if (result < 0) {
         log(std::format("Unable to set pin {} for input (error={}).", pin, result));
     }
 }
 
+
+/**
+ * Set the given pin pulled-up.
+ * 
+ * @param pin The pin to set pulled-up.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 void GPIO::setPullUp(unsigned pin)
 {
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
+    }
+    if (gpioChannel < 0) {
+        log("Opening channel to pigpiod for GPIO.");
+        openChannel();
+    }
+
     auto result = set_pull_up_down(gpioChannel, pin, PI_PUD_UP);
     if (result < 0) {
         log(std::format("Unable to set pin {} for pull-up (error={}).", pin, result));
     }
 }
 
+
+/**
+ * Set the given pin pulled-down.
+ * 
+ * @param pin The pin to set pulled-down.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 void GPIO::setPullDown(unsigned pin)
 {
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
+    }
+    if (gpioChannel < 0) {
+        log("Opening channel to pigpiod for GPIO.");
+        openChannel();
+    }
+
     auto result = set_pull_up_down(gpioChannel, pin, PI_PUD_DOWN);
     if (result < 0) {
         log(std::format("Unable to set pin {} for pull-up (error={}).", pin, result));
@@ -188,10 +332,17 @@ void GPIO::setPullDown(unsigned pin)
 static std::array<GPIO::GPIOHandler, NumGPIO> gpioRiseHandlers;
 static std::array<GPIO::GPIOHandler, NumGPIO> gpioFallHandlers;
 
+
+/**
+ * The callback function for GPIO interrupts. An out of range pin number should not occur, but if it does, it is ignored.
+ * 
+ * @param channel The channel number.
+ * @param gpio The GPIO pin number.
+ * @param level The level of the signal.
+ * @param tick The time of the event.
+ */
 static void gpioIRQ([[maybe_unused]] int channel, unsigned gpio, unsigned level, uint32_t tick) {
-    if (gpio >= NumGPIO) {
-        return;
-    }
+    if (gpio >= NumGPIO) { return; }
 
     if ((level == 0) && gpioFallHandlers[gpio]) {
         gpioFallHandlers[gpio](gpio, tick);
@@ -200,8 +351,15 @@ static void gpioIRQ([[maybe_unused]] int channel, unsigned gpio, unsigned level,
     }
 }
 
+
 static std::array<std::atomic_flag, NumGPIO> callbackRegistered;
 
+
+/**
+ * Register the callback for a pin.
+ * 
+ * @param pin The pin number.
+ */
 static void registerCallback(unsigned pin)
 {
     static std::atomic_flag firstRun = ATOMIC_FLAG_INIT;
@@ -221,48 +379,123 @@ static void registerCallback(unsigned pin)
 }
 
 
+/**
+ * Set an interrupt handler to trigger when the input on the pin changes from low to high.
+ * 
+ * @param pin The pin to set the handler for.
+ * @param handler The handler to call when the event occurs.
+ * @throws std::runtime_error if the pin number is out of range.
+ */
 void GPIO::addRiseHandler(unsigned pin, GPIO::GPIOHandler handler)
 {
     if (!validPin(pin)) {
-        throw new std::runtime_error("Bad pin number.");
+        throw std::runtime_error("Bad pin number.");
     }
+    if (gpioChannel < 0) {
+        log("Opening channel to pigpiod for GPIO.");
+        openChannel();
+    }
+
     registerCallback(pin);
 
     gpioRiseHandlers[pin] = handler;
 }
 
+/**
+ * Set an interrupt handler to trigger when the input on the pin is high.
+ * 
+ * Always throws an exception, as this is not implemented.
+ * 
+ * @param pin The pin to set the handler for.
+ * @param handler The handler to call when the event occurs.
+ * @throws std::runtime_error if the pin number is out of range.
+ */
 void GPIO::addHighHandler([[maybe_unused]] unsigned pin, [[maybe_unused]] GPIO::GPIOHandler handler)
 {
-    throw new std::runtime_error("High handlers are not implemented.");
+    throw std::runtime_error("High handlers are not implemented.");
 }
 
+
+/**
+ * Set an interrupt handler to trigger when the input on the pin changes from high to low.
+ * 
+ * @param pin The pin to set the handler for.
+ * @param handler The handler to call when the event occurs.
+ * @throws std::runtime_error if the pin number is out of range.
+ */
 void GPIO::addFallHandler(unsigned pin, GPIO::GPIOHandler handler)
 {
     if (!validPin(pin)) {
-        throw new std::runtime_error("Bad pin number.");
+        throw std::runtime_error("Bad pin number.");
     }
+    if (gpioChannel < 0) {
+        log("Opening channel to pigpiod for GPIO.");
+        openChannel();
+    }
+
     registerCallback(pin);
 
     gpioFallHandlers[pin] = handler;
 }
 
+
+/**
+ * Set an interrupt handler to trigger when the input on the pin is low.
+ * 
+ * Always throws an exception, as this is not implemented.
+ * 
+ * @param pin The pin to set the handler for.
+ * @param handler The handler to call when the event occurs.
+ * @throws std::runtime_error if the pin number is out of range.
+ */
 void GPIO::addLowHandler([[maybe_unused]] unsigned pin, [[maybe_unused]] GPIO::GPIOHandler handler)
 {
-    throw new std::runtime_error("High handlers are not implemented.");
+    throw std::runtime_error("Low handlers are not implemented.");
 }
 
+
+/**
+ * Set the value of a pin.
+ * 
+ * @param pin The pin number.
+ * @param value The value to set the pin to.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 void GPIO::set(unsigned pin, bool value)
 {
-    openChannel();
+    if (!validPin(pin)) {
+        throw std::out_of_range("Pin number out of range.");
+    }
+    if (gpioChannel < 0) {
+        log("Opening channel to pigpiod for GPIO.");
+        openChannel();
+    }
+
+    log(std::format("Setting pin {} to {}.", pin, value ? 1 : 0));
     auto result = gpio_write(gpioChannel, pin, value ? 1 : 0);
     if (result < 0) {
         log(std::format("Unable to set pin {} to {} (error={}).", pin, value, result));
     }
 }
 
+
+/**
+ * Get the value of a pin.
+ * 
+ * @param pin The pin number.
+ * @return The value of the pin.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 bool GPIO::get(unsigned pin)
 {
-    openChannel();
+    if (!validPin(pin)) {
+        throw std::out_of_range("Pin number out of range.");
+    }
+    if (gpioChannel < 0) {
+        log("Opening channel to pigpiod for GPIO.");
+        openChannel();
+    }
+
     auto result = gpio_read(gpioChannel, pin);
     if (result < 0) {
         log(std::format("Unable to read pin {} (error={}).", pin, result));

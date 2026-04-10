@@ -20,7 +20,6 @@ set(CPP_RASPBERRY_INCLUDES ${CPP_RASPBERRY_INCLUDES}
     ${CMAKE_CURRENT_LIST_DIR}/include)
 
 set(CPP_RASPBERRY_SOURCES ${CPP_RASPBERRY_SOURCES}
-    ${CMAKE_CURRENT_LIST_DIR}/src/util/verbose-component.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/util/ini-state.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/interfaces/zero2w-gpio.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/zero2w.cpp)

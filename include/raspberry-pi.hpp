@@ -15,22 +15,23 @@
  * limitations under the License.
  */
 
-#include <map>
 #include <string>
-#include <memory>
-
 #include <cstdint>
-
-#include <util/verbose-component.hpp>
-#include <interfaces/gpio.hpp>
 
 
 namespace nl::rakis::raspberrypi {
 
-class RaspberryPi : public util::VerboseComponent {
+namespace interfaces { class GPIO; } // Forward declaration
+
+
+/**
+ * The RaspberryPi class is a singleton that provides access to the Raspberry Pi's GPIO interface
+ * and a few utility functions.
+ */
+class RaspberryPi {
 
 public:
-    RaspberryPi() = default;
+    RaspberryPi();
     ~RaspberryPi() = default;
 
     // There can be only one, so no copying or moving.
@@ -40,21 +41,33 @@ public:
     RaspberryPi& operator=(RaspberryPi&&) = delete;
 
     /**
-     * @brief Return the instance.
+     * Return the instance.
      */
     static RaspberryPi& instance();
 
+    /**
+     * Log the provided string.
+     * 
+     * @param s The string to log.
+     * @param addNewline If true, a newline is added to the log message.
+     */
+    static void log(std::string const& s, bool addNewline = true);
 
     /**
-     * @brief Sleep for (at least) the given number of milliseconds.
+     * Sleep for (at least) the given number of milliseconds.
+     * 
+     * @param ms The number of milliseconds to sleep.
      */
     void sleepMs(unsigned ms) const;
 
     /**
-     * @brief Return a reference to the (local) GPIO interface
+     * Return a reference to the (local) GPIO interface
      */
     static interfaces::GPIO& gpio();
 
+    /**
+     * Return a reference to the (local) GPIO interface
+     */
     operator interfaces::GPIO&() { return gpio(); }
 
 };

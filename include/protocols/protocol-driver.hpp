@@ -20,6 +20,7 @@
 
 #include <span>
 #include <string>
+#include <format>
 #include <vector>
 
 #include <util/verbose-component.hpp>
@@ -58,7 +59,7 @@ class ProtocolDriver : public util::VerboseComponent
 protected:
 
     static void noopHandler(Command command, uint8_t sender, [[maybe_unused]] const std::vector<uint8_t>& data) {
-        log() << "No registered handler for command " << toInt(command) << " from " << sender << ". Ignoring message.\n";
+        RaspberryPi::log(std::format("No registered handler for command {} from {}. Ignoring message.\n", toInt(command), sender));
     }
 
     bool haveHandler(Command command) const {
@@ -236,7 +237,7 @@ public:
     void processOutgoing() {
         outgoing_.processAll([this](Command command, uint8_t address, const std::vector<uint8_t>& data) {
             if (!sendMessage(command, address, data) && verbose()) {
-                log() << "Failed to send " << static_cast<int>(toInt(command)) << " to " << static_cast<int>(address) << ", no response.\n";
+                log(std::format("Failed to send {} to {}, no response.\n", toInt(command), address));
             }
         });
     }

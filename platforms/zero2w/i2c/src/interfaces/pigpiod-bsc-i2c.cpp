@@ -82,7 +82,7 @@ void PigpiodBSCI2C::processBytes(std::span<uint8_t> data)
 {
     bytes_.insert(bytes_.end(), data.begin(), data.end());
     if (verbose()) {
-        log() << "Received " << data.size() << " bytes, now " << bytes_.size() << " in buffer\n";
+        log(std::format("Received {} bytes, now {} in buffer", data.size(), bytes_.size()));
     }
 
     while (bytes_.size() >= protocols::MsgHeaderSize) {

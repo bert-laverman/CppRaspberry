@@ -1,4 +1,8 @@
 lcd2x16
 max7219
-ssd1305
+mcp23s17
+sh1122
+ssd130x
 tlc59711
+
+st7789

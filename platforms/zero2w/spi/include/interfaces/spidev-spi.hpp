@@ -37,7 +37,7 @@ constexpr static const char *spi0_1{"/dev/spidev0.1"};
 /**
     * @brief This class implements a SPI interface using "/dev/spidev*".
     */
-class SPIDevSPI : public SPI
+class SPIDevSPI : public SPI<SPIDevSPI>
 {
     int busNr_;
     int csNr_;
@@ -82,17 +82,11 @@ public:
 
     virtual ~SPIDevSPI() {}
 
-    virtual operator bool() const noexcept override { return fd_ >= 0; }
+    void doOpen();
 
-    virtual void open() override;
+    void doClose();
 
-    virtual void close() override;
-
-    virtual void select() override;
-
-    virtual void deselect() override;
-
-    virtual void write(const std::span<uint8_t> value) override;
+    void doWrite(const std::span<uint8_t> value);
 
 };
 

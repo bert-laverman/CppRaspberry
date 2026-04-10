@@ -30,7 +30,7 @@ extern "C" {
 using namespace nl::rakis::raspberrypi::interfaces;
 
 
-void PigpiodSPI::open()
+void PigpiodSPI::doOpen()
 {
     auto& gpio = RaspberryPi::gpio();
     switch (busNr_) {
@@ -106,37 +106,37 @@ void PigpiodSPI::open()
         }
         gpio.claim(misoPin(), GPIOMode::SPI);
     }
-
+    log(std::format("Claimed pins for SPI bus {}: CS={}, SCLK={}, MOSI={}, MISO={}", busNr_, csPin(), sclkPin(), mosiPin(), misoPin()));
     if (channel_ < 0) {
         log("Opening a channel to pigpiod.");
         channel_ =  pigpio_start(nullptr, nullptr);
         if (channel_ < 0) {
-            log() << "Failed to open a channel to pigpiod.\n";
+            log("Failed to open a channel to pigpiod.");
             throw std::runtime_error("Failed to open a channel to pigpiod.");
         }
     }
     if (fd_ < 0) {
-        log(std::format("Opening SPI bus {} at {} BAUD", busNr_, baudRate()));
-        fd_ =  spi_open(channel_, busNr_, baudRate(), 0x0000);
+        log(std::format("Opening SPI bus {} using CE{} at {} BAUD", busNr_, csNr_, baudRate()));
+        fd_ =  spi_open(channel_, csNr_, baudRate(), (busNr() == 0) ? 0x0000 : 0x0100);
         if (fd_ < 0) {
             switch (fd_) {
             case PI_BAD_SPI_CHANNEL:
-                log() << "Bad SPI channel #.\n";
+                log("Bad SPI channel #.");
                 break;
             case PI_BAD_SPI_SPEED:
-                log() << "Bad speed setting for SPI channel.\n";
+                log("Bad speed setting for SPI channel.");
                 break;
             case PI_BAD_FLAGS:
-                log() << "Bad flags for configuring SPI channel.\n";
+                log("Bad flags for configuring SPI channel.");
                 break;
             case PI_NO_AUX_SPI:
-                log() << "Auxilary SPI channel not available.\n";
+                log("Auxilary SPI channel not available.");
                 break;
             case PI_SPI_OPEN_FAILED:
-                log() << "Failed to open SPI channel.\n";
+                log("Failed to open SPI channel.");
                 break;
             default:
-                log() << "Unknown error (" << fd_ << ") on opening SPI channel.\n";
+                log(std::format("Unknown error ({}) on opening SPI channel.\n", fd_));
                 break;
             }
             throw std::runtime_error("Failed to open SPI channel via pigpiod.");
@@ -144,51 +144,47 @@ void PigpiodSPI::open()
     }
 }
 
-void PigpiodSPI::close()
+void PigpiodSPI::doClose()
 {
     if (fd_ >= 0) {
-        if (verbose()) {
-            log() << "Closing SPI channel.\n";
-        }
+        log("Closing SPI channel.");
         spi_close(channel_, fd_);
         fd_ = -1;
     }
     if (channel_ >= 0) {
-        if (verbose()) {
-            log() << "Closing channel to pigpiod.\n";
-        }
+        log("Closing channel to pigpiod.");
         pigpio_stop(channel_);
         channel_ = -1;
     }
 }
 
 
-void PigpiodSPI::write(std::span<uint8_t> data)
+void PigpiodSPI::doWrite(std::span<uint8_t> data)
 {
     if (fd_ < 0) {
         open();
     }
 
     if (verbose()) {
-        log() << std::format("Writing {} bytes: ", data.size());
+        log(std::format("Writing {} bytes: ", data.size()), false);
         for (auto const &byte : data)
-            log() << std::format("0x{:02x} ", byte);
-        log() << std::endl;
+            log(std::format("0x{:02x} ", byte), false);
+        log("");
     }
     auto result = spi_write(channel_, fd_, reinterpret_cast<char*>(data.data()), data.size());
     if (result < 0) {
         switch (result) {
         case PI_BAD_HANDLE:
-            log() << "Bad SPI channel #.\n";
+            log("Bad SPI channel #.");
             break;
         case PI_BAD_SPI_COUNT:
-            log() << "Bad SPI channel #.\n";
+            log("Bad SPI count.");
             break;
         case PI_SPI_XFER_FAILED:
-            log() << "Failed to send all data to SPI channel.\n";
+            log("Failed to send all data to SPI channel.");
             break;
         default:
-            log() << "Unknown error (" << result << ") on writing data to SPI channel.\n";
+            log(std::format("Unknown error ({}) on writing data to SPI channel.", result));
             break;
         }
     }

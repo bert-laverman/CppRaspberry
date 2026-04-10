@@ -15,16 +15,14 @@
  * limitations under the License.
  */
 
-
-#include <string>
-#include <iostream>
+#include <raspberry-pi.hpp>
 
 
 namespace nl::rakis::raspberrypi::util {
 
 
 /**
- * @brief A VerboseComponent can emit logging, if enabled.
+ * A VerboseComponent can emit logging, if enabled.
  */
 class VerboseComponent {
     bool verbose_ { false };
@@ -38,31 +36,27 @@ public:
     VerboseComponent& operator=(const VerboseComponent&) = default;
     VerboseComponent& operator=(VerboseComponent&&) = default;
 
-    /**
-     * @brief Return the stream log messages should be sent to.
-     */
-    static std::ostream& log();
 
     /**
-     * @brief Returns if this component should actually produce logging.
+     * Returns if this component should actually produce logging.
      */
     bool verbose() const noexcept { return verbose_; }
 
+
     /**
-     * @brief Set if this component should actually produce logging.
+     * Set if this component should actually produce logging.
      */
     void verbose(bool verb) noexcept { verbose_ = verb; }
 
     /**
-     * @brief Conveniece method to send the provided string to the log, if in verbose mode.
+     * Convenience method to send the provided string to the log, if in verbose mode.
+     * 
+     * @param s The string to log.
+     * @param addNewline If true, a newline is added to the log message.
      */
-    void log(std::string s, bool addNewline =true) {
+    void log(const std::string s, bool addNewline =true) {
         if (verbose()) {
-            if (addNewline) {
-                log() << s << std::endl;
-            } else {
-                log() << s;
-            }
+            RaspberryPi::log(s, addNewline);
         }
     }
 };

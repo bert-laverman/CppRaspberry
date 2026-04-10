@@ -35,7 +35,7 @@ namespace nl::rakis::raspberrypi::interfaces
 /**
     * @brief This class implements a SPI interface using pigpiod.
     */
-class PigpiodSPI : public SPI
+class PigpiodSPI : public SPI<PigpiodSPI>
 {
     int busNr_{ -1 };
     int csNr_{ -1 };
@@ -46,7 +46,12 @@ class PigpiodSPI : public SPI
     int fd_{ -1 };
 
 public:
-    PigpiodSPI(int busNr, int csNr =0) : busNr_(busNr), csNr_(csNr) {}
+    PigpiodSPI(int busNr, int csNr =0)
+        : SPI<PigpiodSPI>(), busNr_(busNr), csNr_(csNr) {}
+    PigpiodSPI(int busNr, int csPin, int sclkPin, int mosiPin)
+        : SPI<PigpiodSPI>(csPin, sclkPin, mosiPin), busNr_{busNr} {}
+    PigpiodSPI(int busNr, int csPin, int sclkPin, int mosiPin, int misoPin)
+        : SPI<PigpiodSPI>(csPin, sclkPin, mosiPin, misoPin), busNr_{ busNr } {}
     PigpiodSPI() : PigpiodSPI(0, 0) {}
 
     PigpiodSPI(PigpiodSPI const &) = default;
@@ -54,19 +59,15 @@ public:
     PigpiodSPI &operator=(PigpiodSPI const &) = default;
     PigpiodSPI &operator=(PigpiodSPI &&) = default;
 
-    virtual ~PigpiodSPI() {}
+    ~PigpiodSPI() { doClose(); }
 
-    virtual operator bool() const noexcept override { return fd_ >= 0; }
+    int busNr() const noexcept { return busNr_; }
 
-    virtual void open() override;
+    void doOpen();
 
-    virtual void close() override;
+    void doClose();
 
-    virtual void select() override;
-
-    virtual void deselect() override;
-
-    virtual void write(const std::span<uint8_t> value) override;
+    void doWrite(const std::span<uint8_t> data);
 
 };
 

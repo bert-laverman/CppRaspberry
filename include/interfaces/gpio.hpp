@@ -15,16 +15,20 @@
  * limitations under the License.
  */
 
-
+#include <bitset>
 #include <functional>
+#include <stdexcept>
 
 #include <util/verbose-component.hpp>
 
 
 namespace nl::rakis::raspberrypi::interfaces {
 
+    
+static constexpr int NO_PIN{ -1 };
+
 /**
- * @brief the use of the pins. Note that which pins can do what will differ per RPi model.
+ * the use of the pins. Note that which pins can do what will differ per RPi model.
  */
 enum class GPIOMode {
     XIP        = 0x00,      // Memory mapping related (eXecute In Place)
@@ -43,9 +47,12 @@ enum class GPIOMode {
 
 
 /**
- * @brief Class for GPIO interfaces.
+ * Class for GPIO interfaces.
  */
 class GPIO : public util::VerboseComponent {
+    static constexpr unsigned MaxGPIO{ 64 };
+    static std::bitset<MaxGPIO> gpioUsed_;
+
 public:
     GPIO();
     ~GPIO();
@@ -58,100 +65,172 @@ public:
 
 
     /**
-     * @brief Return true if this GPIO interface is directly connected to the Raspberry Pi.
+     * Return true if this GPIO interface is directly connected to the Raspberry Pi.
      */
     bool direct() const noexcept;
 
     /**
-     * @brief Get the number of pins available on this GPIO interface.
+     * Get the number of pins available on this GPIO interface.
      */
     unsigned numPins() const noexcept;
 
     /**
-     * @brief Return true if the given pin is in use. Note that non-existing pins are simply considered to be not in use.
+     * Return true if the given pin is in use. Note that non-existing pins are simply considered to be not in use.
+     * 
+     * @param pin The pin to check.
+     * @throws std::out_of_range if the pin number is out of range.
      */
-    bool used(unsigned pin) const noexcept;
+    bool used(unsigned pin) const {
+        if (pin >= MaxGPIO) {
+            throw std::out_of_range("Pin number out of range.");
+        }
+        return gpioUsed_[pin];
+    }
 
     /**
-     * @brief Return true if the given pin is available for use. Note that non-existing pins are simply considered to be not available.
+     * Return true if the given pin is available for use. Note that non-existing pins are simply considered to be not available.
+     * 
+     * @param pin The pin to check.
+     * @throws std::out_of_range if the pin number is out of range.
      */
-    bool available(unsigned pin) const noexcept;
+    bool available(unsigned pin) const {
+        if (pin >= MaxGPIO) {
+            throw std::out_of_range("Pin number out of range.");
+        }
+        return !gpioUsed_[pin];
+    }
 
     /**
-     * @brief Convenience function to check if a given pin is valid.
+     * Convenience function to check if a given pin number is valid.
+     * 
+     * @param pin The pin to check.
      */
-    bool validPin(unsigned pin) const noexcept;
+    bool validPin(unsigned pin) const noexcept { return pin < numPins(); }
 
     /**
-     * @brief Mark a pin as in use, but don't actually do anything with it.
+     * Mark a pin as in use, but don't actually do anything with it.
+     * 
+     * @param pin The pin to claim.
+     * @param mode The mode to claim it for.
+     * @throws std::out_of_range if the pin number is out of range.
      */
     void claim(unsigned pin, GPIOMode mode = GPIOMode::SIO);
 
     /**
-     * @brief Release the claim on a pin, without any other actions.
+     * Release the claim on a pin, without any other actions.
+     * 
+     * @param pin The pin to release.
+     * @throws std::out_of_range if the pin number is out of range.
      */
     void release(unsigned pin) { claim(pin, GPIOMode::Unused); }
 
     /**
-     * @brief Claim a pin and indicate what is will be used for. Default mode is Software controlled I/O. Set it to GPIOMode::Unused to release.
+     * Claim a pin and indicate what it will be used for. Default mode is Software controlled I/O. Set it to GPIOMode::Unused to release.
+     * 
+     * @param pin The pin to claim.
+     * @param mode The mode to claim it for.
+     * @throws std::out_of_range if the pin number is out of range.
+     * @throws std::runtime_error if the pin is not available.
      */
     void init(unsigned pin, GPIOMode mode = GPIOMode::SIO);
 
     /**
-     * @brief Release a pin.
+     * Release a pin.
+     * 
+     * @param pin The pin to release.
+     * @throws std::out_of_range if the pin number is out of range.
      */
     void deinit(unsigned pin) { init(pin, GPIOMode::Unused); }
 
     /**
-     * @brief Set the given pin as used for output.
+     * Set the given pin as used for output.
+     * 
+     * @param pin The pin to set for output.
+     * @throws std::out_of_range if the pin number is out of range.
      */
     void setForOutput(unsigned pin);
 
     /**
-     * @brief Set the given pin as used for input.
+     * Set the given pin as used for input.
+     * 
+     * @param pin The pin to set for input.
+     * @throws std::out_of_range if the pin number is out of range.
      */
     void setForInput(unsigned pin);
 
     /**
-     * @brief Set the given pin pulled-up.
+     * Set the given pin pulled-up.
+     * 
+     * @param pin The pin to set pulled-up.
+     * @throws std::out_of_range if the pin number is out of range.
      */
     void setPullUp(unsigned pin);
 
     /**
-     * @brief Set the given pin pulled-down.
+     * Set the given pin pulled-down.
+     * 
+     * @param pin The pin to set pulled-down.
+     * @throws std::out_of_range if the pin number is out of range.
      */
     void setPullDown(unsigned pin);
 
 
+    /**
+     * Handler for GPIO events.
+     */
     using GPIOHandler = std::function<void(unsigned pin, uint32_t event)>;
 
     /**
-     * @brief Set an interrup handler to trigger when the input on the pin changes from low to high.
+     * Set an interrupt handler to trigger when the input on the pin changes from low to high.
+     * 
+     * @param pin The pin to set the handler for.
+     * @param handler The handler to call when the event occurs.
+     * @throws std::runtime_error if the pin number is out of range.
      */
     void addRiseHandler(unsigned pin, GPIOHandler handler);
 
     /**
-     * @brief Set an interrup handler to trigger when the input on the pin is high.
+     * Set an interrupt handler to trigger when the input on the pin is high.
+     * 
+     * @param pin The pin to set the handler for.
+     * @param handler The handler to call when the event occurs.
+     * @throws std::runtime_error if the pin number is out of range.
      */
     void addHighHandler(unsigned pin, GPIOHandler handler);
 
     /**
-     * @brief Set an interrup handler to trigger when the input on the pin changes from high to low.
+     * Set an interrupt handler to trigger when the input on the pin changes from high to low.
+     * 
+     * @param pin The pin to set the handler for.
+     * @param handler The handler to call when the event occurs.
+     * @throws std::runtime_error if the pin number is out of range.
      */
     void addFallHandler(unsigned pin, GPIOHandler handler);
 
     /**
-     * @brief Set an interrup handler to trigger when the input on the pin is low.
+     * Set an interrupt handler to trigger when the input on the pin is low.
+     * 
+     * @param pin The pin to set the handler for.
+     * @param handler The handler to call when the event occurs.
+     * @throws std::runtime_error if the pin number is out of range.
      */
     void addLowHandler(unsigned pin, GPIOHandler handler);
 
     /**
-     * @brief Set the output on the given pin to the given value.
+     * Set the output on the given pin to the given value.
+     * 
+     * @param pin The pin to set the output for.
+     * @param value The value to set the output to.
+     * @throws std::runtime_error if the pin number is out of range.
      */
     void set(unsigned pin, bool value);
 
     /**
-     * @brief Get the current input of the given pin.
+     * Get the current input of the given pin.
+     * 
+     * @param pin The pin to get the input for.
+     * @return The current input of the pin.
+     * @throws std::out_of_range if the pin number is out of range.
      */
     bool get(unsigned pin);
 };

@@ -60,7 +60,10 @@ public:
 
     ~PicoSPI() { doClose(); };
 
-    bool initialized() const { return initialized_; }
+    int busNr() const noexcept { return busNr_; }
+    spi_inst_t* interface() const noexcept { return interface_; }
+
+    bool initialized() const noexcept { return initialized_; }
 
     void doOpen();
 

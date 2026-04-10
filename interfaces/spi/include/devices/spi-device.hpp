@@ -34,9 +34,6 @@ class SPIDevice : public util::VerboseComponent
 {
     SpiClass& spi_;
 
-protected:
-    virtual void numDevicesChanged() = 0;
-
 public:
     SPIDevice(SpiClass& spi) : spi_(spi) {}
     ~SPIDevice() {}

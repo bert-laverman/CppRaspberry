@@ -1,5 +1,6 @@
+#pragma once
 /*
- * Copyright (c) 2024 by Bert Laverman. All Rights Reserved.
+ * Copyright (c) 2025 by Bert Laverman. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +15,5 @@
  * limitations under the License.
  */
 
-
-#include <util/verbose-component.hpp>
-
-
-using namespace nl::rakis::raspberrypi::util;
-
-
-std::ostream& VerboseComponent::log() {
-    return std::cerr;
-}
+// Moved to interfaces/spi — include from there directly.
+#include <devices/grayscale-oled-controller.hpp>

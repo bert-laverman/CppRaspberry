@@ -30,13 +30,13 @@ void SPIDevSPI::validate()
 
 }
 
-void SPIDevSPI::open()
+void SPIDevSPI::doOpen()
 {
     if (fd_ < 0) {
         log(std::format("Opening SPI device '{}'.", interface_));
         fd_ = ::open(interface_.c_str(), O_RDWR);
         if (fd_ < 0) {
-            log() << "Failed to open SPI interface: " << strerror(errno) << std::endl;
+            log(std::format("Failed to open SPI interface: {}", strerror(errno)));
             throw std::runtime_error("Failed to open SPI interface");
         }
 
@@ -72,18 +72,16 @@ void SPIDevSPI::open()
     }
 }
 
-void SPIDevSPI::close()
+void SPIDevSPI::doClose()
 {
     if (fd_ >= 0) {
-        if (verbose()) {
-            log() << "Closing SPI interface: " << interface_ << std::endl;
-        }
+        log(std::format("Closing SPI interface: {}", interface_));
         ::close(fd_);
     }
 }
 
 
-void SPIDevSPI::write(std::span<uint8_t> data)
+void SPIDevSPI::doWrite(std::span<uint8_t> data)
 {
     if (fd_ < 0) {
         open();
@@ -94,12 +92,11 @@ void SPIDevSPI::write(std::span<uint8_t> data)
     rx_buf.resize(bufSize);
     rx_buf.assign(bufSize, 0);
 
-
     if (verbose()) {
-        log() << std::format("Writing {} bytes: ", data.size());
+        log(std::format("Writing {} bytes: ", data.size()), false);
         for (auto const &byte : data)
-            log() << std::format("0x{:02x} ", byte);
-        log() << std::endl;
+            log(std::format("0x{:02x} ", byte), false);
+        log("");
     }
     // ::write(fd_, data.data(), data.size());
     struct spi_ioc_transfer tr{

@@ -25,7 +25,7 @@
 
 #include <util/named-component.hpp>
 #include <util/verbose-component.hpp>
-
+#include <interfaces/gpio.hpp>
 #include <protocols/messages.hpp>
 
 
@@ -51,8 +51,8 @@ class I2C : public util::NamedComponent, public util::VerboseComponent {
     bool initialized_{ false };
     bool listening_{ false };
 
-    unsigned sdaPin_;
-    unsigned sclPin_;
+    int sdaPin_{ NO_PIN };
+    int sclPin_{ NO_PIN };
 
     uint8_t address_{ 0 };
     protocols::MsgCallback callback_;
@@ -153,8 +153,8 @@ public:
     /**
      * @brief Set the GPIO pin used for data. NOTE: If the value changes, the connection will be forcibly closed.
      */
-    void sdaPin(unsigned pin) {
-        if (sdaPin_ != pin) {
+    void sdaPin(int pin) {
+        if ((sdaPin_ != pin) && (pin != NO_PIN)) {
             close();
             sdaPin_ = pin;
         }
@@ -163,13 +163,13 @@ public:
     /**
      * @brief return the GPIO pin number used for the SDA line.
      */
-    unsigned sdaPin() const noexcept { return sdaPin_; }
+    int sdaPin() const noexcept { return sdaPin_; }
 
     /**
      * @brief Set the GPIO pin used the clock. NOTE: If the value changes, the connection will be forcibly closed.
      */
-    void sclPin(unsigned pin) {
-        if (sclPin_ != pin) {
+    void sclPin(int pin) {
+        if ((sclPin_ != pin) && (pin != NO_PIN)) {
             close();
             sclPin_ = pin;
         }
@@ -178,7 +178,7 @@ public:
     /**
      * @brief return the GPIO pin number used for the SCL line.
      */
-    unsigned sclPin() const { return sclPin_; }
+    int sclPin() const noexcept { return sclPin_; }
 
     /**
      * @brief Set the callback to be used for incoming messages.

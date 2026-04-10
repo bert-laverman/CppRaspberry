@@ -209,11 +209,7 @@ public:
         std::memcpy(data.data() + MsgHeaderSize, msg.data(), msg.size());
 
         if (this->verbose()) {
-#if defined(TARGET_PICO)
-            printf("sendMessage(0x%02x, 0x%02x, [%d bytes payload, %d total message size])\n", address, toInt(command), msg.size(), data.size());
-#else
             this->log(std::format("sendMessage(0x{:02x}, 0x{:02x}, [{} bytes payload, {} total message size])", address, toInt(command), msg.size(), data.size()));
-#endif
         }
 
         MsgHeader header{

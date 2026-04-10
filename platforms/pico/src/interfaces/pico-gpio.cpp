@@ -18,6 +18,7 @@
 #include <hardware/gpio.h>
 
 #include <array>
+#include <format>
 #include <functional>
 #include <stdexcept>
 
@@ -27,8 +28,23 @@
 using namespace nl::rakis::raspberrypi::interfaces;
 
 
+/**
+ * The actual number of GPIO pins available on a Pico.
+ */
 static constexpr unsigned NumGPIO{ 30 };
 
+
+/**
+ * Whether the pin is used or not.
+ */
+std::bitset<GPIO::MaxGPIO> GPIO::gpioUsed_;
+
+
+/**
+ * The mode of each pin.
+ * 
+ * TODO Deprecate this?
+ */
 static std::array<GPIOMode, NumGPIO> mode_{{
     // Left side, as viewed from above
     GPIOMode::Unused,       // GPIO  0: Pin  1, default UART0 TX
@@ -80,94 +96,182 @@ static std::array<GPIOMode, NumGPIO> mode_{{
 }};
 
 
-inline static GPIOMode mode(unsigned pin) {
-    return (pin >= NumGPIO) ? GPIOMode::Unavailable : mode_[pin];
-}
-
+/**
+ * Initialize the GPIO interface.
+ */
 GPIO::GPIO()
 {
+    gpioUsed_.reset();
+
+    // Mark all unavailable pins as used.
+    for (unsigned i = 0; i < NumGPIO; i++) {
+        if (mode_[i] == GPIOMode::Unavailable) {
+            gpioUsed_.set(i);
+        }
+    }
 }
 
+
+/**
+ * Release all pins.
+ */
 GPIO::~GPIO()
 {
+    // Release all pins.
+    for (unsigned i = 0; i < NumGPIO; i++) {
+        if (used(i)) {
+            release(i);
+            gpio_deinit(i);
+        }
+    }
 }
 
 
+/**
+ * Return the mode of a pin.
+ *
+ * @param pin The pin number.
+ * @return The mode of the pin.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
+inline static GPIOMode& mode(unsigned pin) {
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
+    }
+    return mode_[pin];
+}
+
+
+/**
+ * Indicate if this interface is directly connected to the board, rather than through a GPIO expander.
+ */
 bool GPIO::direct() const noexcept
 {
     return true;
 }
 
+
+/**
+ * Return the number of pins available.
+ *
+ * @return The number of pins available.
+ */
 unsigned GPIO::numPins() const noexcept
 {
     return NumGPIO;
 }
 
-bool GPIO::validPin(unsigned pin) const noexcept
-{
-    return mode(pin) != GPIOMode::Unavailable;
-}
 
-bool GPIO::used(unsigned pin) const noexcept
-{
-    return mode(pin) < GPIOMode::Unused;
-}
-
-bool GPIO::available(unsigned pin) const noexcept
-{
-    return mode(pin) == GPIOMode::Unused;
-}
-
+/**
+ * Set a pin's availability or use
+ * @param pin The pin number.
+ * @return true if the pin is available, false if it is in use.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 void GPIO::claim(unsigned pin, GPIOMode m)
 {
-    mode_[pin] = m;
+    mode(pin) = m;
+    gpioUsed_.set(pin, m != GPIOMode::Unused);
 }
 
+
+/**
+ * Initialize a pin for use.
+ * 
+ * @param pin The pin number.
+ * @param m The mode to set the pin to.
+ * @throws std::out_of_range if the pin number is out of range.
+ * @throws std::runtime_error if the pin is not available.
+ */
 void GPIO::init(unsigned pin, GPIOMode m)
 {
     if (m == GPIOMode::Unused) {
         if (used(pin)) {
-            if (verbose()) {
-                log() << "Releasing pin " << pin << ".\n";
-            }
+            log(std::format("Releasing pin {}.", pin));
+
             release(pin);
             gpio_deinit(pin);
-        } else if (verbose()) {
-            log() << "Releasing pin " << pin << ", but it already was unused.\n";
+        } else {
+            log(std::format("Releasing pin {} but it was already released.\n", pin));
         }
         return;
     }
     if (!available(pin)) {
-        if (verbose()) {
-            log() << "Pin " << pin << " is not available.\n";
-        }
-        throw new std::runtime_error("Pin not available.");
+        log(std::format("Pin {} is not available.\n", pin));
+
+        throw std::runtime_error("Pin not available.");
     }
     if (verbose()) {
-        log() << "Initializing pin " << pin << ".\n";
+        log(std::format("Initializing pin {} for {} use. (mode {})",
+            pin,
+            (m == GPIOMode::SPI ? "SPI" : (m == GPIOMode::I2C ? "I2C" : "GPIO")),
+            static_cast<int>(m)));
     }
     claim(pin, m);
-    gpio_init(pin);
-    gpio_set_function(pin, static_cast<gpio_function_t>(m));
+    if (m == GPIOMode::SIO) {
+        gpio_init(pin);
+    } else {
+        gpio_set_function(pin, static_cast<gpio_function_t>(m));
+    }
 }
 
+
+/**
+ * Set the given pin as used for output.
+ * 
+ * @param pin The pin to set for output.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 void GPIO::setForOutput(unsigned pin)
 {
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
+    }
     gpio_set_dir(pin, true);
 }
 
+
+/**
+ * Set the given pin as used for input.
+ * 
+ * @param pin The pin to set for input.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 void GPIO::setForInput(unsigned pin)
 {
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
+    }
     gpio_set_dir(pin, false);
 }
 
+
+/**
+ * Set the given pin pulled-up.
+ * 
+ * @param pin The pin to set pulled-up.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 void GPIO::setPullUp(unsigned pin)
 {
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
+    }
     gpio_pull_up(pin);
 }
 
+
+/**
+ * Set the given pin pulled-down.
+ * 
+ * @param pin The pin to set pulled-down.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 void GPIO::setPullDown(unsigned pin)
 {
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
+    }
     gpio_pull_down(pin);
 }
 
@@ -178,7 +282,17 @@ static std::array<GPIO::GPIOHandler, NumGPIO> gpioRiseHandlers;
 static std::array<GPIO::GPIOHandler, NumGPIO> gpioFallHandlers;
 
 
+/**
+ * Compute the IRQ mask for a pin.
+ * 
+ * @param pin The pin number.
+ * @return The IRQ mask for the pin.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 inline static uint32_t irqMask(unsigned pin) {
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
+    }
     uint32_t mask{0};
 
     if (gpioHighHandlers[pin]) mask |= GPIO_IRQ_LEVEL_HIGH;
@@ -189,68 +303,127 @@ inline static uint32_t irqMask(unsigned pin) {
     return mask;
 }
 
-static void gpioIRQ(uint gpio, uint32_t events) {
-    if (gpio >= NumGPIO) {
-        return;
-    }
 
-    if (((events & GPIO_IRQ_LEVEL_LOW) != 0) && gpioLowHandlers[gpio]) {
-        gpioLowHandlers[gpio](gpio, events);
-    } else if (((events & GPIO_IRQ_LEVEL_HIGH) != 0) && gpioHighHandlers[gpio]) {
-        gpioHighHandlers[gpio](gpio, events);
-    } else if (((events & GPIO_IRQ_EDGE_FALL) != 0) && gpioFallHandlers[gpio]) {
-        gpioFallHandlers[gpio](gpio, events);
-    } else if (((events & GPIO_IRQ_EDGE_RISE) != 0) && gpioRiseHandlers[gpio]) {
-        gpioRiseHandlers[gpio](gpio, events);
+/**
+ * Handle GPIO interrupts. An out of range pin number should not occur, but if it does, it is ignored.
+ * 
+ * @param pin The pin number.
+ * @param events The events that occurred.
+ */
+static void gpioIRQ(uint pin, uint32_t events) noexcept {
+    if (pin >= NumGPIO) { return; }
+
+    if (((events & GPIO_IRQ_LEVEL_LOW) != 0) && gpioLowHandlers[pin]) {
+        gpioLowHandlers[pin](pin, events);
+    } else if (((events & GPIO_IRQ_LEVEL_HIGH) != 0) && gpioHighHandlers[pin]) {
+        gpioHighHandlers[pin](pin, events);
+    } else if (((events & GPIO_IRQ_EDGE_FALL) != 0) && gpioFallHandlers[pin]) {
+        gpioFallHandlers[pin](pin, events);
+    } else if (((events & GPIO_IRQ_EDGE_RISE) != 0) && gpioRiseHandlers[pin]) {
+        gpioRiseHandlers[pin](pin, events);
     }
 }
 
+
+/**
+ * Set an interrupt handler to trigger when the input on the pin changes from low to high.
+ * 
+ * @param pin The pin to set the handler for.
+ * @param handler The handler to call when the event occurs.
+ * @throws std::runtime_error if the pin number is out of range.
+ */
 void GPIO::addRiseHandler(unsigned pin, GPIO::GPIOHandler handler)
 {
-    if (!validPin(pin)) {
-        throw new std::runtime_error("Bad pin number.");
+    if (pin >= NumGPIO) {
+        throw std::runtime_error("Pin number out of range.");
     }
     gpioRiseHandlers[pin] = handler;
 
     gpio_set_irq_enabled_with_callback(pin, irqMask(pin), true, &gpioIRQ);
 }
 
+
+/**
+ * Set an interrupt handler to trigger when the input on the pin is high.
+ * 
+ * @param pin The pin to set the handler for.
+ * @param handler The handler to call when the event occurs.
+ * @throws std::runtime_error if the pin number is out of range.
+ */
 void GPIO::addHighHandler(unsigned pin, GPIO::GPIOHandler handler)
 {
-    if (!validPin(pin)) {
-        throw new std::runtime_error("Bad pin number.");
+    if (pin >= NumGPIO) {
+        throw std::runtime_error("Pin number out of range.");
     }
     gpioHighHandlers[pin] = handler;
 
     gpio_set_irq_enabled_with_callback(pin, irqMask(pin), true, &gpioIRQ);
 }
 
+
+/**
+ * Set an interrupt handler to trigger when the input on the pin changes from high to low.
+ * 
+ * @param pin The pin to set the handler for.
+ * @param handler The handler to call when the event occurs.
+ * @throws std::runtime_error if the pin number is out of range.
+ */
 void GPIO::addFallHandler(unsigned pin, GPIO::GPIOHandler handler)
 {
-    if (!validPin(pin)) {
-        throw new std::runtime_error("Bad pin number.");
+    if (pin >= NumGPIO) {
+        throw std::runtime_error("Pin number out of range.");
     }
     gpioFallHandlers[pin] = handler;
 
     gpio_set_irq_enabled_with_callback(pin, irqMask(pin), true, &gpioIRQ);
 }
 
+
+/**
+ * Set an interrupt handler to trigger when the input on the pin is low.
+ * 
+ * @param pin The pin to set the handler for.
+ * @param handler The handler to call when the event occurs.
+ * @throws std::runtime_error if the pin number is out of range.
+ */
 void GPIO::addLowHandler(unsigned pin, GPIO::GPIOHandler handler)
 {
-    if (!validPin(pin)) {
-        throw new std::runtime_error("Bad pin number.");
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
     }
     gpioLowHandlers[pin] = handler;
 
     gpio_set_irq_enabled_with_callback(pin, irqMask(pin), true, &gpioIRQ);
 }
 
+
+/**
+ * Set the value of a pin.
+ * 
+ * @param pin The pin number.
+ * @param value The value to set the pin to.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 void GPIO::set(unsigned pin, bool value)
 {
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
+    }
     gpio_put(pin, value);
 }
 
+
+/**
+ * Get the value of a pin.
+ * 
+ * @param pin The pin number.
+ * @return The value of the pin.
+ * @throws std::out_of_range if the pin number is out of range.
+ */
 bool GPIO::get(unsigned pin)
 {
+    if (pin >= NumGPIO) {
+        throw std::out_of_range("Pin number out of range.");
+    }
     return gpio_get(pin);
 }

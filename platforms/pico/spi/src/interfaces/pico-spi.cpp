@@ -42,11 +42,17 @@ void PicoSPI::doOpen()
     auto& gpio = RaspberryPi::gpio();
     gpio.init(csPin());
     gpio.setForOutput(csPin());
-    // gpio.pullUp(csPin());
+    gpio.set(csPin(), true);    // deselect (CS is active LOW; start unasserted)
+    // gpio.setPullUp(csPin());
 
     gpio.init(sclkPin(), GPIOMode::SPI);
+    gpio.setForOutput(sclkPin());
     gpio.init(mosiPin(), GPIOMode::SPI);
-    gpio.init(misoPin(), GPIOMode::SPI);
+    gpio.setForOutput(mosiPin());
+    if (is4Pin()) {
+        gpio.init(misoPin(), GPIOMode::SPI);
+        gpio.setForOutput(misoPin());
+    }
 
     if (verbose()) {
         printf("Initializing SPI interface %d at %d BAUD.\n", busNr_, baudRate());
@@ -59,6 +65,17 @@ void PicoSPI::doOpen()
 void PicoSPI::doClose()
 {
     if (verbose()) { printf("Closing SPI interface\n"); }
+
+    spi_deinit(interface_);
+
+    auto& gpio = RaspberryPi::gpio();
+    gpio.deinit(csPin());
+    gpio.deinit(sclkPin());
+    gpio.deinit(mosiPin());
+    if (is4Pin()) {
+        gpio.deinit(misoPin());
+    }
+    initialized(false);
 }
 
 void PicoSPI::doWrite(const std::span<uint8_t> data)

@@ -16,6 +16,13 @@
  */
 
 #include <cstring>
+#include <cstdint>
+
+#include <span>
+#include <array>
+#include <vector>
+#include <algorithm>
+#include <format>
 
 #include <protocols/messages.hpp>
 #include <protocols/i2c-protocol-driver.hpp>
@@ -106,9 +113,8 @@ public:
         driver_.registerHandler(Command::Hello, "MsgHello handler",
                                 [this]([[maybe_unused]] Command command, uint8_t sender, const std::vector<uint8_t>& data) {
             if (data.size() != sizeMsgHello) {
-                if (driver_.i2cIn().verbose()) {
-                    driver_.i2cIn().log() << "Dropping Hello message: size " << data.size() << " does not match expected " << sizeMsgHello << ".\n";
-                }
+                driver_.i2cIn().log(std::format("Dropping Hello message: size {} does not match expected {}.", data.size(), sizeMsgHello));
+
                 return;
             }
             MsgHello msg;
@@ -120,9 +126,7 @@ public:
         driver_.registerHandler(Command::SetAddress, "MsgSetAddress handler",
                                 [this]([[maybe_unused]] Command command, [[maybe_unused]] uint8_t sender, const std::vector<uint8_t>& data) {
             if (data.size() != sizeMsgSetAddress) {
-                if (driver_.i2cIn().verbose()) {
-                    driver_.i2cIn().log() << "Dropping Hello message: size " << data.size() << " does not match expected " << sizeMsgSetAddress << ".\n";
-                }
+                driver_.i2cIn().log(std::format("Dropping SetAddress message: size {} does not match expected {}.", data.size(), sizeMsgSetAddress));
                 return;
             }
             MsgSetAddress msg;
