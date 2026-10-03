@@ -94,7 +94,7 @@ public:
         std::memcpy(msg.data(), &id.bytes[0], idSize);
         msg[idSize] = address;
 
-        return driver_.sendMessage(GeneralCallAddress, Command::SetAddress, msg);
+        return driver_.sendMessage(Command::SetAddress, GeneralCallAddress, std::span<uint8_t>(msg));
     }
 
     inline bool haveController() const { return controllerAddress_ != GeneralCallAddress; }
