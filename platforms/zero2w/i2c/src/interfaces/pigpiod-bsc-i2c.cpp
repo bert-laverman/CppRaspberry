@@ -16,6 +16,7 @@
 
 
 #include <cstring>
+#include <string>
 #include <format>
 #include <exception>
 
@@ -78,19 +79,60 @@ bool PigpiodBSCI2C::canListen() const noexcept {
     return true;
 }
 
+/**
+ * The largest payload we accept in a message, and the highest valid 7-bit address for a sender. A header that
+ * claims more than this, or one whose payload does not match its checksum, is not a message.
+ */
+static constexpr size_t maxPayload{ 64 };
+static constexpr uint8_t maxSender{ 0x7f };
+
+static uint8_t checksumOf(const uint8_t* data, size_t size)
+{
+    uint8_t checksum{ 0 };
+    for (size_t i = 0; i < size; ++i) {
+        checksum ^= data[i];
+    }
+    return checksum;
+}
+
+/**
+ * Collect the bytes that come in from the bus, and hand over every complete message.
+ *
+ * Bytes can arrive in pieces that do not line up with messages, and a disturbed transmission (for example two
+ * masters that start at the same time) can leave extra or missing bytes. So a message is only accepted if its header
+ * is plausible and the checksum of its payload matches. If not, one byte is dropped and the search for a valid
+ * header continues, so the stream recovers by itself.
+ */
 void PigpiodBSCI2C::processBytes(std::span<uint8_t> data)
 {
     bytes_.insert(bytes_.end(), data.begin(), data.end());
     if (verbose()) {
-        log(std::format("Received {} bytes, now {} in buffer", data.size(), bytes_.size()));
+        std::string hex;
+        for (auto byte : data) {
+            hex += std::format("{:02x} ", byte);
+        }
+        log(std::format("Received {} bytes, now {} in buffer: {}", data.size(), bytes_.size(), hex));
     }
 
     while (bytes_.size() >= protocols::MsgHeaderSize) {
         protocols::MsgHeader header;
         std::memcpy(&header, bytes_.data(), protocols::MsgHeaderSize);
-        if (bytes_.size() < protocols::MsgHeaderSize + header.length) {
-            break;
+
+        if ((header.length > maxPayload) || (header.sender > maxSender)) {
+            if (verbose()) { log(std::format("Dropping byte 0x{:02x}: not a valid header.", bytes_.front())); }
+            bytes_.erase(bytes_.begin());
+            continue;
         }
+        if (bytes_.size() < protocols::MsgHeaderSize + header.length) {
+            break;      // the rest of the message has not arrived yet
+        }
+        const uint8_t* payload = bytes_.data() + protocols::MsgHeaderSize;
+        if (checksumOf(payload, header.length) != header.checksum) {
+            if (verbose()) { log(std::format("Dropping byte 0x{:02x}: checksum does not match.", bytes_.front())); }
+            bytes_.erase(bytes_.begin());
+            continue;
+        }
+
         if (callback()) {
             callback()(protocols::toCommand(header.command), header.sender, std::span<uint8_t>(bytes_.data() + protocols::MsgHeaderSize, header.length));
         } else {
