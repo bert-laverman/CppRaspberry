@@ -18,6 +18,7 @@
 
 #include <fcntl.h>
 
+#include <chrono>
 #include <vector>
 #include <thread>
 #include <iostream>
@@ -84,6 +85,7 @@ class PigpiodBSCI2C : public I2C {
     bool listening_{ false };
 
     std::vector<uint8_t> bytes_;
+    std::chrono::steady_clock::time_point lastReceived_{};
 
     void processBytes(std::span<uint8_t> data);
 

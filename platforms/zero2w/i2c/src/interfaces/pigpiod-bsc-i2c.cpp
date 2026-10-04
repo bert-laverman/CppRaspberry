@@ -15,6 +15,7 @@
  */
 
 
+#include <chrono>
 #include <cstring>
 #include <string>
 #include <format>
@@ -28,6 +29,7 @@ extern "C" {
 
 
 using namespace nl::rakis::raspberrypi::interfaces;
+namespace protocols = nl::rakis::raspberrypi::protocols;
 
 
 enum class PIGPIO_Control : uint32_t {
@@ -84,7 +86,42 @@ bool PigpiodBSCI2C::canListen() const noexcept {
  * claims more than this, or one whose payload does not match its checksum, is not a message.
  */
 static constexpr size_t maxPayload{ 64 };
-static constexpr uint8_t maxSender{ 0x7f };
+
+/**
+ * A message is sent in one go, which takes about a millisecond at 100 kHz. If the rest of a partial message has not
+ * arrived after this long, it never will, and what is left must not be mixed up with the next message.
+ */
+static constexpr std::chrono::milliseconds maxStale{ 20 };
+
+/**
+ * Only the commands we know are accepted. Together with the checksum this keeps noise from passing as a message,
+ * for instance a payload of length 0, which has checksum 0.
+ */
+static bool isKnownCommand(uint8_t command)
+{
+    switch (protocols::toCommand(command)) {
+    case protocols::Command::Hello:
+    case protocols::Command::SetAddress:
+    case protocols::Command::Enumerate:
+    case protocols::Command::InterfaceInfo:
+    case protocols::Command::DeviceInfo:
+    case protocols::Command::Log:
+    case protocols::Command::Led:
+    case protocols::Command::Max7219:
+    case protocols::Command::Button:
+        return true;
+    default:
+        return false;
+    }
+}
+
+/**
+ * A sender is either "no address yet" (0x00), or a valid 7-bit address. (0x01-0x07 and 0x78-0x7f are reserved.)
+ */
+static bool isValidSender(uint8_t sender)
+{
+    return (sender == 0x00) || ((sender >= 0x08) && (sender <= 0x77));
+}
 
 static uint8_t checksumOf(const uint8_t* data, size_t size)
 {
@@ -105,6 +142,13 @@ static uint8_t checksumOf(const uint8_t* data, size_t size)
  */
 void PigpiodBSCI2C::processBytes(std::span<uint8_t> data)
 {
+    const auto now = std::chrono::steady_clock::now();
+    if (!bytes_.empty() && ((now - lastReceived_) > maxStale)) {
+        if (verbose()) { log(std::format("Discarding {} stale byte(s) of an incomplete message.", bytes_.size())); }
+        bytes_.clear();
+    }
+    lastReceived_ = now;
+
     bytes_.insert(bytes_.end(), data.begin(), data.end());
     if (verbose()) {
         std::string hex;
@@ -118,7 +162,7 @@ void PigpiodBSCI2C::processBytes(std::span<uint8_t> data)
         protocols::MsgHeader header;
         std::memcpy(&header, bytes_.data(), protocols::MsgHeaderSize);
 
-        if ((header.length > maxPayload) || (header.sender > maxSender)) {
+        if ((header.length > maxPayload) || !isValidSender(header.sender) || !isKnownCommand(header.command)) {
             if (verbose()) { log(std::format("Dropping byte 0x{:02x}: not a valid header.", bytes_.front())); }
             bytes_.erase(bytes_.begin());
             continue;
@@ -163,7 +207,8 @@ void PigpiodBSCI2C::listen(PigpiodBSCI2C& bus)
             bus.processBytes(std::span<uint8_t>(reinterpret_cast<uint8_t*>(xfer.rxBuf), xfer.rxCnt));
         }
         if  (xfer.rxCnt == 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            // The BSC receive FIFO holds just 16 bytes, so poll often enough to empty it while a message is still coming in.
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
     bus.log("Listener thread stopped");
