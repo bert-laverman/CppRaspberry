@@ -80,8 +80,8 @@ public:
      */
     void handle(const MsgSetAddress& msg) {
         if ((msg.boardId.id == deviceId_.id) && (msg.address != driver_.listenAddress())) {
-            driver_.disableResponderMode();
-            driver_.enableResponderMode(msg.address);
+            // Changing the listen address restarts the listener on the new address.
+            driver_.listenAddress(msg.address);
         }
     }
 
@@ -109,11 +109,17 @@ public:
         }
     }
 
+    void logDrop(const char* what, size_t got, size_t expected) {
+        if (auto in = driver_.i2cIn().lock()) {
+            in->log(std::format("Dropping {} message: size {} does not match expected {}.", what, got, expected));
+        }
+    }
+
     inline void registerAsDevice() {
         driver_.registerHandler(Command::Hello, "MsgHello handler",
                                 [this]([[maybe_unused]] Command command, uint8_t sender, const std::vector<uint8_t>& data) {
             if (data.size() != sizeMsgHello) {
-                driver_.i2cIn().log(std::format("Dropping Hello message: size {} does not match expected {}.", data.size(), sizeMsgHello));
+                logDrop("Hello", data.size(), sizeMsgHello);
 
                 return;
             }
@@ -126,7 +132,7 @@ public:
         driver_.registerHandler(Command::SetAddress, "MsgSetAddress handler",
                                 [this]([[maybe_unused]] Command command, [[maybe_unused]] uint8_t sender, const std::vector<uint8_t>& data) {
             if (data.size() != sizeMsgSetAddress) {
-                driver_.i2cIn().log(std::format("Dropping SetAddress message: size {} does not match expected {}.", data.size(), sizeMsgSetAddress));
+                logDrop("SetAddress", data.size(), sizeMsgSetAddress);
                 return;
             }
             MsgSetAddress msg;

@@ -265,7 +265,10 @@ void PicoI2C::startListening()
         irq_set_enabled(I2C1_IRQ, true);
     } else {
         log("Trying to use an unknown I2C interface.");
+
+        return;
     }
+    listening(true);
 }
 
 
@@ -285,6 +288,7 @@ void PicoI2C::stopListening()
         log("Trying to use an unknown I2C interface.");
     }
     i2c_set_slave_mode(interface_, false, 0);
+    listening(false);
 }
 
 bool PicoI2C::canSend() const noexcept
@@ -296,27 +300,32 @@ bool PicoI2C::write(uint8_t address, std::span<uint8_t> data)
 {
     log(std::format("Sending {} bytes to 0x{:02x} on channel {}.", data.size(), address, channel()));
 
+    // An I2C block can not be master and slave at the same time, so step out of responder mode for the
+    // duration of the write, and go back to it afterwards.
+    const bool wasListening = listening();
+    if (wasListening) {
+        stopListening();
+    }
+
+    bool success = false;
     [[maybe_unused]]
     absolute_time_t deadline{ time_us_64() + (5000 * data.size()) };
     auto result = i2c_write_blocking_until(interface_, address, data.data(), data.size(), false, deadline);
     if (result == PICO_ERROR_GENERIC) {
         log(std::format("Failed to write bytes to 0x{:02x}. No one there.", address));
-
-        return false;
     } else if (result == PICO_ERROR_TIMEOUT) {
         log(std::format("Failed to write bytes to 0x{:02x}. Timeout.", address));
-
-        return false;
     } else if (result < 0) {
         log(std::format("Failed to write bytes to 0x{:02x}. Errno={}.", address, result));
-
-        return false;
     } else if (static_cast<unsigned>(result) != data.size()) {
         log(std::format("Failed to write {} bytes to 0x{:02x}. Only wrote {} bytes.", data.size(), address, result));
-
-        return false;
     } else {
         log(std::format("Successfully wrote {} bytes to 0x{:02x}.", data.size(), address));
+        success = true;
     }
-    return true;
+
+    if (wasListening) {
+        startListening();
+    }
+    return success;
 }
