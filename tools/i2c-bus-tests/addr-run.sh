@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # Address-request collision test. Each round:
-#   - restart the controller (test-i2c) on $CONTROLLER_HOST, so it has no addresses yet
+#   - restart the controller (test-i2c) on $CONTROLLER_HOST, and remove its saved addresses (~/i2c-state.ini), so it
+#     has none yet
 #   - reboot both Picos (they run the trigger build of PicoTestI2C) and capture their serial output
 #   - wait until they have heard the controller, then pulse GPIO 17 on $CONTROLLER_HOST: both ask for an address at once
 #   - collect the logs
@@ -27,7 +28,7 @@ for r in $(seq 1 "$ROUNDS"); do
     echo "== Round $r"
 
     # fresh controller
-    $SSH "$CONTROLLER_HOST" 'pkill -x test-i2c; sleep 1; nohup ~/test-i2c 120 > ~/controller.log 2>&1 < /dev/null &' >/dev/null 2>&1
+    $SSH "$CONTROLLER_HOST" 'pkill -x test-i2c; rm -f ~/i2c-state.ini; sleep 1; nohup ~/test-i2c 120 > ~/controller.log 2>&1 < /dev/null &' >/dev/null 2>&1
     sleep 2
 
     # reboot both Picos, wait for their serial ports, start capturing

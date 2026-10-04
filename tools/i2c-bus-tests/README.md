@@ -91,7 +91,8 @@ Runs the whole address assignment (hello, request, `SetAddress`) with two Picos 
 It uses the **trigger build of `PicoTestI2C`** (`cmake -DTEST_TRIGGER=ON`), which holds back its first address request
 until GP2 goes high and then sends it immediately. Per round:
 
-1. restart the controller (`~/test-i2c`) on the controller host, so it has no addresses yet,
+1. restart the controller (`~/test-i2c`) on the controller host and remove its saved addresses (`~/i2c-state.ini`), so it
+   has none yet,
 2. reboot both Picos with `picotool reboot -f` and capture their serial output,
 3. wait for them to hear the controller's `Hello`, and pulse the trigger,
 4. collect the logs from the Picos and the controller, and print a summary.
