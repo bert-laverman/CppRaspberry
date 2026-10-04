@@ -200,6 +200,9 @@ public:
      * @param address The address to send it to.
      * @param msg     The payload of the message.
      */
+    // Declaring sendMessage() here hides the overloads of the base class (for a message struct, and for a vector).
+    using ProtocolDriver<QueueImpl>::sendMessage;
+
     virtual bool sendMessage(Command command, uint8_t address, const std::span<uint8_t> msg) override {
         if (!i2cOut_) {
             this->log("No outgoing I2C interface available, cannot send message.");

@@ -14,11 +14,7 @@
 
 if(HAVE_MAX7219)
 
-    message(STATUS "Adding files for the SPI connected MAX7219 numeric display driver")
-
-    if(NOT HAVE_SPI)
-        message(FATAL_ERROR "A SPI interface is required for the MAX7219 driver")
-    endif()
+    message(STATUS "Adding files for the MAX7219 numeric display driver (SPI is needed for the local one, not for the remote one)")
 
     add_compile_definitions(HAVE_MAX7219)
 

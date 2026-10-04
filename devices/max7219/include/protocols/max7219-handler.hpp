@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+#include <cstring>
 #include <vector>
 
 
@@ -25,11 +26,12 @@
 
 namespace nl::rakis::raspberrypi::protocols {
 
+template <class SpiClass>
 class MAX7219Handler {
-    devices::LocalMAX7219& max_;
+    devices::LocalMAX7219<SpiClass>& max_;
 
 public:
-    MAX7219Handler(devices::LocalMAX7219& max) : max_(max) {}
+    MAX7219Handler(devices::LocalMAX7219<SpiClass>& max) : max_(max) {}
     MAX7219Handler(const MAX7219Handler&) = delete;
     MAX7219Handler(MAX7219Handler&&) = delete;
     MAX7219Handler& operator=(const MAX7219Handler&) = delete;
@@ -123,8 +125,9 @@ public:
         driver.registerHandler(Command::Max7219, "Handle MAX7219 messages",
                                [this]([[maybe_unused]] Command command, [[maybe_unused]] uint8_t sender, const std::vector<uint8_t>& data) {
             if (data.size() != sizeof(MsgMax7219)) return;
-            const MsgMax7219* msg = reinterpret_cast<const MsgMax7219*>(data.data());
-            handle(*msg);
+            MsgMax7219 msg;
+            std::memcpy(&msg, data.data(), sizeof(MsgMax7219));     // the data may not be aligned
+            handle(msg);
         });
     }
 };

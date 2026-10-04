@@ -16,17 +16,12 @@
  */
 
 
-#if !defined(HAVE_SPI)
-#error "SPI support is required for the MAX7219 driver"
-#endif
-
 #include <cstdint>
 
 #include <span>
 #include <array>
 #include <vector>
 
-#include <devices/spi-device.hpp>
 
 namespace nl::rakis::raspberrypi::devices {
 
@@ -47,7 +42,8 @@ struct MAX7219Module {
 /**
  * Represents a MAX7219 device or a (daisy-chained) set of MAX7219 devices.
  * 
- * This class provides an interface to control a MAX7219 device using SPI communication.
+ * This class provides an interface to control a MAX7219 device. How the commands reach the device (directly over SPI, or as
+ * messages to a device that has the MAX7219 attached) is up to the implementation, which provides the doXxx() methods.
  * It allows setting brightness, scan limit, decode mode, and other parameters of the device.
  * It also provides methods to display numbers and clear the display.
  */

@@ -185,6 +185,8 @@ public:
      * Reset the attached modules.
      */
      void doReset() {
+        // Send every step at once while resetting, and leave the setting as we found it.
+        const bool previous = this->writeImmediately();
         this->writeImmediately(true);
         this->shutdown();
         this->displayTest(0);
@@ -193,7 +195,7 @@ public:
         this->startup();
         this->setBrightness(7);
         this->clear();
-        this->writeImmediately(false);
+        this->writeImmediately(previous);
      }
 
     /**
