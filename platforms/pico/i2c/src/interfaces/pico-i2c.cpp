@@ -238,15 +238,8 @@ static void i2c1_cb() {
     i2c_cb(i2c1, *picoI2C1);
 }
 
-void PicoI2C::startListening()
+void PicoI2C::enableResponder()
 {
-    if (listening()) {
-        return;
-    }
-    log(std::format("Switching to responder mode on channel {} using address 0x{:02x}.", channel(), listenAddress()));
-
-    reset();
-
     if (interface_ == i2c0) {
         log("Setting up IRQ handler for i2c0.");
 
@@ -271,13 +264,8 @@ void PicoI2C::startListening()
     listening(true);
 }
 
-
-void PicoI2C::stopListening()
+void PicoI2C::disableResponder()
 {
-    if (!listening()) {
-        return;
-    }
-    log(std::format("Switching to master mode on channel {}.", channel()));
     if (interface_ == i2c0) {
         irq_set_enabled(I2C0_IRQ, false);
         picoI2C0 = nullptr;
@@ -291,6 +279,28 @@ void PicoI2C::stopListening()
     listening(false);
 }
 
+void PicoI2C::startListening()
+{
+    if (listening()) {
+        return;
+    }
+    log(std::format("Switching to responder mode on channel {} using address 0x{:02x}.", channel(), listenAddress()));
+
+    reset();
+    enableResponder();
+}
+
+
+void PicoI2C::stopListening()
+{
+    if (!listening()) {
+        return;
+    }
+    log(std::format("Switching to master mode on channel {}.", channel()));
+
+    disableResponder();
+}
+
 bool PicoI2C::canSend() const noexcept
 {
     return true;
@@ -301,10 +311,11 @@ bool PicoI2C::write(uint8_t address, std::span<uint8_t> data)
     log(std::format("Sending {} bytes to 0x{:02x} on channel {}.", data.size(), address, channel()));
 
     // An I2C block can not be master and slave at the same time, so step out of responder mode for the
-    // duration of the write, and go back to it afterwards.
+    // duration of the write, and go back to it afterwards. Going back is just a matter of switching modes: a full
+    // reset of the block would leave us deaf for a while, and we could miss the answer to this very message.
     const bool wasListening = listening();
     if (wasListening) {
-        stopListening();
+        disableResponder();
     }
 
     bool success = false;
@@ -325,7 +336,7 @@ bool PicoI2C::write(uint8_t address, std::span<uint8_t> data)
     }
 
     if (wasListening) {
-        startListening();
+        enableResponder();
     }
     return success;
 }

@@ -38,6 +38,16 @@ class PicoI2C : public I2C
         i2c_read_raw_blocking(interface_, date.data(), date.size());
     }
 
+    /**
+     * @brief Switch the (already initialised) I2C block to responder mode on the listen address, and enable its interrupt.
+     */
+    void enableResponder();
+
+    /**
+     * @brief Switch the I2C block back to master mode, and disable its interrupt. Leaves the block initialised.
+     */
+    void disableResponder();
+
 public:
     PicoI2C(i2c_inst_t *interface, unsigned sdaPin, unsigned sclPin);
 
