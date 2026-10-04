@@ -1,0 +1,170 @@
+#!/usr/bin/env bash
+#
+# Build a CppRaspberry project on the Pi 5 and deploy it.
+#
+#   cppr-deploy [options] <Project> [-- program arguments]
+#   cppr-deploy --list-picos
+#
+#   Pico*     built with the Pico SDK, then flashed to a Pico that is plugged into the Pi 5
+#   Zero2W*   cross-built for 32-bit ARM, then copied to a Zero (default: berry-1)
+#
+# Options:
+#   --no-deploy       build only
+#   --run             (Zero2W*) run the program on the target afterwards, with the arguments after "--"
+#   --monitor[=SECS]  (Pico*) show the Pico's USB serial output for SECS seconds (default 10)
+#   --pico PATTERN    (Pico*) which Pico: part of its serial number (see --list-picos). Required when
+#                     more than one Pico is attached to the build host.
+#   --list-picos      list the Picos attached to the build host and exit
+#   --clean           remove the build directory first
+#   --build-host H    build host (default: pi5)
+#   --target H        (Zero2W*) target host (default: berry-1)
+#
+# The sources are taken from ~/dev/CppRaspberry on this machine and synchronised to the same
+# location on the build host, so the working copy here stays the single source of truth.
+#
+# A running Pico shows its flash ID as USB serial number, which is unique and does not change.
+# (In BOOTSEL mode the serial number is a different one, so a Pico in BOOTSEL mode can only be
+# selected when it is the only one attached.)
+
+set -euo pipefail
+
+BUILD_HOST=pi5
+TARGET=berry-1
+DEPLOY=1
+RUN=0
+MONITOR=0
+CLEAN=0
+PICO=
+LIST=0
+LOCAL_ROOT="$HOME/dev/CppRaspberry"
+REMOTE_ROOT='$HOME/dev/CppRaspberry'      # expanded on the build host
+
+# Shell function that is defined on the build host: print "bus address tty serial" for each USB
+# device from Raspberry Pi that has a serial number containing $1 (empty matches all).
+# A Pico in BOOTSEL mode has no tty, which is shown as "-".
+PICO_FIND='find_picos() {
+    for d in /sys/bus/usb/devices/*; do
+        [ "$(cat $d/idVendor 2>/dev/null)" = 2e8a ] || continue
+        ser=$(cat $d/serial 2>/dev/null)
+        case "$ser" in *"$1"*) ;; *) continue ;; esac
+        tty=$(ls $d/*/tty 2>/dev/null | head -1)
+        echo "$(cat $d/busnum) $(cat $d/devnum) ${tty:--} $ser"
+    done
+}'
+
+usage() { sed -n '3,28p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-1}"; }
+
+show_picos() { awk '{printf "  bus %s address %s  /dev/%s  serial %s\n", $1, $2, $3, $4}'; }
+
+project=
+args=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --no-deploy)   DEPLOY=0 ;;
+        --run)         RUN=1 ;;
+        --monitor)     MONITOR=10 ;;
+        --monitor=*)   MONITOR="${1#*=}" ;;
+        --clean)       CLEAN=1 ;;
+        --pico)        PICO="$2"; shift ;;
+        --list-picos)  LIST=1 ;;
+        --build-host)  BUILD_HOST="$2"; shift ;;
+        --target)      TARGET="$2"; shift ;;
+        -h|--help)     usage 0 ;;
+        --)            shift; args=("$@"); break ;;
+        -*)            echo "Unknown option $1" >&2; usage ;;
+        *)             [[ -z "$project" ]] && project="$1" || { echo "Only one project" >&2; usage; } ;;
+    esac
+    shift
+done
+
+if (( LIST )); then
+    ssh "$BUILD_HOST" "$PICO_FIND; find_picos ''" | show_picos
+    exit 0
+fi
+[[ -n "$project" ]] || usage
+
+[[ -d "$LOCAL_ROOT/$project" ]] || { echo "No such project: $LOCAL_ROOT/$project" >&2; exit 1; }
+
+case "$project" in
+    Pico*)   kind=pico ;;
+    Zero2W*) kind=zero2w ;;
+    *)       echo "Don't know how to build '$project' (expected Pico* or Zero2W*)." >&2; exit 1 ;;
+esac
+
+echo "== Syncing $project and the library to $BUILD_HOST"
+ssh "$BUILD_HOST" "mkdir -p $REMOTE_ROOT"
+rsync -a --delete --exclude 'build*' --exclude .git \
+    "$LOCAL_ROOT/CppRaspberry" "$LOCAL_ROOT/$project" "$BUILD_HOST:dev/CppRaspberry/"
+
+echo "== Building $project on $BUILD_HOST"
+if [[ $kind == pico ]]; then
+    ssh "$BUILD_HOST" bash -s -- "$project" "$CLEAN" <<'REMOTE'
+set -euo pipefail
+cd "$HOME/dev/CppRaspberry/$1"
+[[ $2 == 1 ]] && rm -rf build
+export PICO_SDK_PATH="$HOME/pico-sdk"
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release >/dev/null
+cmake --build build
+ls build/*.uf2
+REMOTE
+else
+    ssh "$BUILD_HOST" bash -s -- "$project" "$CLEAN" <<'REMOTE'
+set -euo pipefail
+cd "$HOME/dev/CppRaspberry/$1"
+[[ $2 == 1 ]] && rm -rf build
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$HOME/cmake/armhf-debian.cmake" >/dev/null
+cmake --build build
+REMOTE
+fi
+
+(( DEPLOY )) || { echo "== Built, not deploying."; exit 0; }
+
+if [[ $kind == pico ]]; then
+    echo "== Selecting the Pico on $BUILD_HOST"
+    found=$(ssh "$BUILD_HOST" "$PICO_FIND; find_picos '$PICO'")
+    count=$(grep -c . <<<"$found" || true)
+    if (( count == 0 )); then
+        echo "No Pico matches '${PICO:-*}'." >&2
+        exit 1
+    elif (( count > 1 )); then
+        echo "More than one Pico matches '${PICO:-*}'. Use --pico with part of the serial number:" >&2
+        show_picos <<<"$found" >&2
+        exit 1
+    fi
+    read -r bus addr _ serial <<<"$found"
+    echo "   $serial (bus $bus, address $addr)"
+
+    echo "== Flashing it"
+    ssh "$BUILD_HOST" bash -s -- "$project" "$bus" "$addr" <<'REMOTE'
+set -euo pipefail
+uf2=$(ls "$HOME/dev/CppRaspberry/$1"/build/*.uf2 | head -1)
+"$HOME/bin/picotool" load -x "$uf2" -f --bus "$2" --address "$3"
+REMOTE
+
+    if (( MONITOR > 0 )); then
+        echo "== Serial output for ${MONITOR}s"
+        # The device re-enumerates after the reboot, so look the tty up again by serial number.
+        ssh "$BUILD_HOST" "$PICO_FIND"'
+            t=
+            for i in $(seq 1 40); do
+                t=$(find_picos '"'$serial'"' | cut -d" " -f3)
+                [ -n "$t" ] && [ "$t" != "-" ] && [ -e "/dev/$t" ] && break
+                sleep 0.5
+            done
+            timeout '"$MONITOR"' cat "/dev/$t"' || true
+    fi
+else
+    echo "== Copying to $TARGET"
+    bin=$(ssh "$BUILD_HOST" bash -s -- "$project" <<'REMOTE'
+cd "$HOME/dev/CppRaspberry/$1/build"
+find . -maxdepth 1 -type f -executable ! -name '*.so*' -printf '%f\n' | head -1
+REMOTE
+)
+    [[ -n "$bin" ]] || { echo "No executable found in the build directory." >&2; exit 1; }
+    scp -q -3 "$BUILD_HOST:dev/CppRaspberry/$project/build/$bin" "$TARGET:$bin"
+    echo "   $TARGET:~/$bin"
+    if (( RUN )); then
+        echo "== Running ~/$bin on $TARGET"
+        ssh -t "$TARGET" "~/$bin ${args[*]:-}"
+    fi
+fi
