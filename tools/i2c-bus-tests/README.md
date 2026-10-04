@@ -116,6 +116,13 @@ host needs `~/test-i2c` and `pinctrl`.
 * Two messages directly behind each other arrive as one chunk of 24 bytes or as two of 12. Polling the BSC FIFO every 10 ms
   lost bytes (the FIFO holds 16); polling every 1 ms did not.
 * Eight rounds in which two Picos asked for an address at the same moment all ended with two different addresses (`0x61`
-  and `0x62`). Each Pico needed its second request: the controller's first `SetAddress` was not picked up. Most likely
-  `PicoI2C::write()` calls `startListening()` afterwards, and that resets the whole I2C block, so the Pico is deaf for a
-  moment.
+  and `0x62`), and in each of them both Picos had to send their request only once.
+
+  An earlier version needed a second request from both Picos in every round. The cause was not on the Pico, but in the
+  controller: `test-i2c` only handled incoming messages once per second, so its `SetAddress` came just after the Pico
+  repeated its request. Handling incoming messages every 10 ms fixed that. Switching `PicoI2C` between responder and master
+  mode without resetting the whole I2C block (instead of a full reset after every write) also helps, but is not what made
+  the difference.
+* The address assignment is confirmed: a Pico that has taken over its new address sends a `Hello` from that address,
+  and the controller keeps an address as *pending* until it sees that. A pending address is sent again every 100 ms, at most
+  5 times. That path has not been exercised by these tests, because no assignment failed.

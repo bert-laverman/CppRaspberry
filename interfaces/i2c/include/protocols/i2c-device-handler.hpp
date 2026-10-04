@@ -79,9 +79,17 @@ public:
      * @brief Handle a SetAddress broadcast message, if for us. This can also change our listen address.
      */
     void handle(const MsgSetAddress& msg) {
-        if ((msg.boardId.id == deviceId_.id) && (msg.address != driver_.listenAddress())) {
+        if (msg.boardId.id != deviceId_.id) {
+            return;
+        }
+        if (msg.address != driver_.listenAddress()) {
             // Changing the listen address restarts the listener on the new address.
             driver_.listenAddress(msg.address);
+        }
+        // Tell the bus controller we have it: a Hello from our new address is what it waits for. If it did not get
+        // this one it sends the SetAddress again, so we confirm every time, not just when the address changed.
+        if (haveController()) {
+            sendHello(controllerAddress_, deviceId_);
         }
     }
 
