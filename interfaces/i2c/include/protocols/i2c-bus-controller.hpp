@@ -41,6 +41,10 @@ namespace nl::rakis::raspberrypi::protocols {
  * sending a Hello from that address. Until that happens the assignment is *pending*: the controller sends the SetAddress
  * again after a while, a limited number of times, and keeps the address reserved for that board.
  *
+ * A board that has an address announces itself every few seconds, on the Hello of the controller (see I2CDeviceHandler). That
+ * is how the controller knows which boards are there, also after it was restarted: onBoardAppeared() and onBoardGone() tell
+ * you when that changes.
+ *
  * The controller does not know where addresses are stored. Give it the boards that you know with addKnown(), and use
  * onConfirmed() to save an address once a board has confirmed it.
  *
@@ -66,6 +70,7 @@ class I2CBusController {
 public:
     using Clock = std::chrono::steady_clock;
     using ConfirmedCallback = std::function<void(const BoardId& id, uint8_t address)>;
+    using BoardCallback = std::function<void(const BoardId& id, uint8_t address)>;
     using Logger = std::function<void(const std::string&)>;
 
 private:
@@ -93,11 +98,15 @@ private:
     std::map<uint8_t, uint64_t> idByAddress_;
     std::map<uint64_t, Pending> pending_;
     std::set<uint8_t> online_;
+    std::map<uint8_t, Clock::time_point> lastSeen_;
+    Clock::duration goneAfter_{ std::chrono::seconds(10) };
 
     Clock::time_point lastHello_{};
     bool helloSent_{ false };
 
     ConfirmedCallback onConfirmed_;
+    BoardCallback onAppeared_;
+    BoardCallback onGone_;
     Logger logger_{ [](const std::string& s) { std::cerr << s; } };
 
     void log(const std::string& s) const { if (logger_) { logger_(s); } }
@@ -152,7 +161,20 @@ private:
      * A board that has an address announces itself.
      */
     void handleAnnouncement(uint8_t sender, const BoardId& id) {
+        const bool wasOnline = online_.count(sender) != 0;
         online_.insert(sender);
+        lastSeen_[sender] = Clock::now();
+
+        // A board that says it has an address we have not given out (we were restarted, and have no state): keep the
+        // address for that board.
+        if (addressById_.find(id.id) == addressById_.end()) {
+            if (idByAddress_.find(sender) == idByAddress_.end()) {
+                addKnown(id, sender);
+                log(std::format("- Board {} was not known, and has address 0x{:02x}. We keep it for that board.\n", idString(id), sender));
+            } else {
+                log(std::format("* Board {} says it has address 0x{:02x}, but that is another board's.\n", idString(id), sender));
+            }
+        }
 
         auto it = pending_.find(id.id);
         if ((it != pending_.end()) && (it->second.address == sender)) {
@@ -161,8 +183,41 @@ private:
             if (onConfirmed_) {
                 onConfirmed_(id, sender);
             }
-        } else {
+            // The board (re)started and took its address: whatever it showed is gone, whether we saw it leave or not.
+            appeared(id, sender);
+        } else if (!wasOnline) {
             log(std::format("- Board announced itself on address 0x{:02x}.\n", sender));
+            appeared(id, sender);
+        }
+    }
+
+    void appeared(const BoardId& id, uint8_t address) {
+        if (onAppeared_) {
+            onAppeared_(id, address);
+        }
+    }
+
+    /**
+     * Boards that have not been heard for a while are gone.
+     */
+    void checkGone(Clock::time_point now) {
+        for (auto it = lastSeen_.begin(); it != lastSeen_.end(); ) {
+            if ((now - it->second) < goneAfter_) {
+                ++it;
+                continue;
+            }
+            const uint8_t address = it->first;
+            BoardId id{ .id = 0 };
+            auto known = idByAddress_.find(address);
+            if (known != idByAddress_.end()) {
+                id.id = known->second;
+            }
+            log(std::format("- Board {} on address 0x{:02x} is gone: we have not heard from it.\n", idString(id), address));
+            online_.erase(address);
+            it = lastSeen_.erase(it);
+            if (onGone_) {
+                onGone_(id, address);
+            }
         }
     }
 
@@ -208,6 +263,18 @@ public:
 
     /** Called when a board has confirmed an address. This is the place to save it. */
     void onConfirmed(ConfirmedCallback callback) { onConfirmed_ = std::move(callback); }
+
+    /**
+     * Called when a board is seen for the first time since we started, comes back after having been gone, or has taken the
+     * address that we gave it (which means that it restarted, and has lost whatever it was showing).
+     */
+    void onBoardAppeared(BoardCallback callback) { onAppeared_ = std::move(callback); }
+
+    /** Called when a board that was there has not been heard for a while (see goneAfter()). */
+    void onBoardGone(BoardCallback callback) { onGone_ = std::move(callback); }
+
+    /** How long a board may stay silent before it is gone (default 10 s). Boards announce themselves every few seconds. */
+    void goneAfter(Clock::duration interval) { goneAfter_ = interval; }
 
     /** Where the messages of the controller go. The default is std::cerr. An empty function turns them off. */
     void logger(Logger logger) { logger_ = std::move(logger); }
@@ -273,6 +340,7 @@ public:
             helloSent_ = true;
         }
         resendUnconfirmed(now);
+        checkGone(now);
     }
 };
 

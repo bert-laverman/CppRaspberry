@@ -18,7 +18,7 @@
 
 This describes how a Raspberry Pi Zero 2 W (the *bus controller*) and any number of Raspberry Pi Picos (the *devices*) talk to
 each other over I2C, what has been tested, and what went wrong on the way. The code is in this repository, in
-`Zero2WTestI2C` (the controller), and in `PicoTestI2C` (a device). Status: 4 October 2026.
+`Zero2WTestI2C` (the controller), and in `PicoTestI2C` (a device). Status: 9 October 2026.
 
 ## Topology
 
@@ -64,6 +64,35 @@ Devices start without an address and only listen for General Calls (address `0x0
    controller.
 
 `I2CBusController` (controller) and `I2CDeviceHandler` (device) implement this.
+
+## Presence
+
+The controller knows whether a board is *online*. A board announces itself: once it has an address, it answers every third
+`Hello` of the controller (so about every 3 seconds) with a `Hello` of its own, sent from its own address
+(`I2CDeviceHandler::announceEvery()`). Any message from a board counts as a sign of life. `I2CBusController` notes when it
+last heard from each board, and `tick()` checks that:
+
+* A board that is silent for `goneAfter()` (10 seconds by default) is *gone*; `onBoardGone()` is called once.
+* A board that is heard again, or confirms an address, is *appeared*; `onBoardAppeared()` is called. A board that talks and is
+  not yet known is added to the known boards first.
+
+The application decides what to do with it. `Zero2WTestI2C` logs it and sends a freshly appeared display its settings again.
+
+Tested on 9 October 2026 with two Picos and a controller that was already running (`tools/i2c-bus-tests/presence-boards.sh`
+does the board side):
+
+| Action | Result |
+|---|---|
+| Controller starts, both boards already running | both `appeared` within seconds, no restart needed |
+| Board A restarted | `gone`, then address confirmed again and `appeared` |
+| Board B put in BOOTSEL mode (it does not run) | `gone` |
+| Board B started again | address confirmed again and `appeared` |
+
+A restarted board has no address and sends `Hello` from `0x00`, so it only counts as online again when the controller has
+assigned its old address and the board has confirmed it. Stopping `Zero2WTestI2C` with SIGINT or SIGTERM now ends its loop and closes the BSC slave properly (tested). Killing it
+with `kill -9` in the middle of a transfer used to leave the BSC slave of the chip enabled and holding `SCL` low; `PigpiodBSCI2C`
+now switches the BSC slave off before it enables it, which should clear that after a restart. That case has not been tested
+since the change.
 
 ## What was measured
 

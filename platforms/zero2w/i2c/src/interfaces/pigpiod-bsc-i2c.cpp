@@ -225,6 +225,14 @@ void PigpiodBSCI2C::startListening()
     }
     log(std::format("Start listening on channel {} and address 0x{:02x}", channel(), listenAddress()));
 
+    // The BSC slave stays as it was if the program that used it was killed in the middle of a transfer, and then it can keep
+    // SCL low. Switch it off first, so we start from a clean slate.
+    {
+        bsc_xfer_t off;
+        std::memset(&off, 0, sizeof(off));
+        bsc_i2c(channel(), 0, &off);
+    }
+
     bsc_xfer_t xfer;
 
     std::memset(&xfer, 0, sizeof(xfer));

@@ -106,6 +106,19 @@ other settings are `BUILD_HOST` (where the Picos are plugged in, default `pi5`),
 `TRIGGER_GPIO` (default `17`) and `OUT` (where the logs go). The build host needs `picotool` in `~/bin`, and the controller
 host needs `~/test-i2c` and `pinctrl`.
 
+### `presence-boards.sh`
+
+The board side of the presence test (see "Presence" in `docs/i2c-bus.md`). Start the controller by hand on its host, for
+example `~/test-i2c 80 0x61 0x62`, and run this at the same moment:
+
+```bash
+SER_A=E6614104031A8938 SER_B=E6614C311B461728 ./presence-boards.sh
+```
+
+It restarts board A, puts board B in BOOTSEL mode (where it does not run), and starts it again, and prints the time of each
+step. The controller must show both boards as `appeared`, and board B as `is gone` about 10 seconds after BOOTSEL, then
+`appeared` again.
+
 ## What this showed (4 October 2026)
 
 * With two ground wires, a Zero 2 W master and a Pico slave on the bus work reliably, in both directions: the Zero's master

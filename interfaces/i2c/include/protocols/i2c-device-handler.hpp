@@ -35,6 +35,8 @@ class I2CDeviceHandler {
     ProtDriver& driver_;
     BoardId deviceId_;
     uint8_t controllerAddress_{ GeneralCallAddress };
+    unsigned announceEvery_{ 3 };       // announce on every third Hello of the controller (a Hello comes once per second)
+    unsigned helloCount_{ 0 };
 
 public:
     I2CDeviceHandler(ProtDriver& driver, BoardId deviceId) : driver_(driver), deviceId_(deviceId) {}
@@ -56,6 +58,16 @@ public:
         if (msg.boardId.id == ControllerId) {
             // The bus controller sent this to announce its own address.
             controllerAddress(sender);
+
+            // A bus controller that has just started does not know that we are here, and tells nobody to speak up. So
+            // a board that has an address announces itself now and then, on the Hello of the controller: that tells a
+            // controller that was restarted who is there, and shows that we are still there.
+            if (hasAddress()) {
+                if (helloCount_ % announceEvery_ == 0) {
+                    sendHello(controllerAddress_, deviceId_);
+                }
+                ++helloCount_;
+            }
         }
     }
 
@@ -106,6 +118,10 @@ public:
     }
 
     inline bool haveController() const { return controllerAddress_ != GeneralCallAddress; }
+    inline bool hasAddress() const { return driver_.listenAddress() != GeneralCallAddress; }
+
+    /** Announce ourselves on every n-th Hello of the bus controller (default: every 3rd). */
+    inline void announceEvery(unsigned n) { announceEvery_ = (n == 0) ? 1 : n; }
     inline bool needAddress() const { return driver_.listenAddress() == GeneralCallAddress; }
 
     /**
