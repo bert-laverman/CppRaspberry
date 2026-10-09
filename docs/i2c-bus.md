@@ -88,6 +88,11 @@ does the board side):
 | Board B put in BOOTSEL mode (it does not run) | `gone` |
 | Board B started again | address confirmed again and `appeared` |
 
+A restarted `PicoTestI2C` needs about 11 seconds before it sends its first `Hello`: about 5 seconds until the USB serial
+port is up, then a 5 second display test, and only then the main loop (measured with timestamps on its serial output). That is
+longer than `goneAfter()`, so a restarted board is reported *gone* first and *appeared* about 13 seconds after the restart. This
+is the firmware starting up, not a fault in the presence detection.
+
 A restarted board has no address and sends `Hello` from `0x00`, so it only counts as online again when the controller has
 assigned its old address and the board has confirmed it. Stopping `Zero2WTestI2C` with SIGINT or SIGTERM now ends its loop and closes the BSC slave properly (tested). Killing it
 with `kill -9` in the middle of a transfer used to leave the BSC slave of the chip enabled and holding `SCL` low; `PigpiodBSCI2C`
